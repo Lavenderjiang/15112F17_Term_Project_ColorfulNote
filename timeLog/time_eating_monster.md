@@ -1,6 +1,6 @@
 My Savior: StackOverflow
 
-##pyAudio
+## pyAudio
 **1. OS error overflow**
 change the chunk size (sampling rate)
 **2. Module Matplotlib/pyaudio not found**
@@ -10,7 +10,7 @@ the correct env with correct python version
 set output = False and scale x_lim and y_lim
 
 
-##gcloud
+## gcloud
 **1. "command "gcloud" not found"**
 add the path (the one inside /bin) to bash profile
 **2. cannot Deploy**
