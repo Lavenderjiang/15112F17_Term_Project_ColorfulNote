@@ -1,12 +1,12 @@
 My Savior: StackOverflow
 
 ## pyAudio
-**1. OS error overflow**
+**1. OS error overflow**  
 change the chunk size (sampling rate)
-**2. Module Matplotlib/pyaudio not found**
+**2. Module Matplotlib/pyaudio not found**  
 change shell configuration, make sure you are in
 the correct env with correct python version
-**3. Matplotlib cannot dymanically graph**
+**3. Matplotlib cannot dymanically graph**  
 set output = False and scale x_lim and y_lim
 
 
