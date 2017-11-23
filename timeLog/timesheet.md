@@ -4,7 +4,7 @@
 Convert audio to graph
   - Module Installation [Done on Nov 16; Took 3 hours]
   - Dynamic Spectrum Visualizer [Done on Nov 21; Took 3 hours]
-  - FFT for Pitch Detection
+  - FFT for Pitch Detection [Done on Nov 23; Took 1.5 hours]
 
 ## webapp
 UI for the program

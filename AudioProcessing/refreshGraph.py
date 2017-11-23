@@ -6,8 +6,9 @@ np.set_printoptions(threshold=np.nan) #print full np array
 import matplotlib.pyplot as plt
 import wave
 import struct
-
-
+fft = np.fft.fft
+    
+    
 
 #from IPython import get_ipython
 #get_ipython().run_line_magic('matplotlib', 'tk')
@@ -79,7 +80,7 @@ def record(outputFile):
 
 def test():
     #plt.ion()
-    fig, ax = plt.subplots(1, figsize=(15, 7))
+    fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
     
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
@@ -99,9 +100,11 @@ def test():
 
     # variable for plotting
     x = np.arange(0, 2 * CHUNK, 2)
+    x_fft = np.linspace(0,RATE,CHUNK)
     
     # create a line object with random data
     line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
+    line_fft, = ax2.plot(x_fft, np.random.rand(CHUNK), '-', lw=2)
     
     # basic formatting for the axes
     ax.set_title('AUDIO WAVEFORM')
@@ -111,6 +114,8 @@ def test():
     ax.set_xlim(0, 2 * CHUNK)
     plt.setp(ax, xticks=[0, CHUNK, 2 * CHUNK], yticks=[0, 128, 255])
 
+    ax2.set_xlim(20,RATE/20) #at 0 line is discontinuous
+    
     plt.show(block=False)
     
     print('stream started')
@@ -122,16 +127,17 @@ def test():
         data_np = np.array(data_int, dtype='b')[::2] 
         #print(data_np)
         line.set_ydata(data_np)
-    
+        #fft
+        y_fft = fft(data_int)
+        #slice to get ride of conjugate and rescale
+        line_fft.set_ydata(np.abs(y_fft[:CHUNK]) * 2 / (128*CHUNK))
         try:
             fig.canvas.draw()
             fig.canvas.flush_events()
-           # frame_count += 1
             #plt.pause(0.1)
             
         except:
             print('stream stopped')
-            #print('average frame rate = {:.0f} FPS'.format(frame_rate))
             break
 
 
@@ -163,8 +169,7 @@ def testplot():
     data = stream.read(CHUNK)
     
     print(data)
-   
-        
+
  
  
  
