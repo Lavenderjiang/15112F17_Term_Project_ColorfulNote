@@ -13,6 +13,7 @@ Collect and analyze audio data
 ## Data mapping
 Convert audio data to graph
   - Stop updating plot with key event [Done on Nov 23; Took 1 hour]
+  - Write audio data to .txt file and read as a list of tuples [Done on Nov 24; Took 1 hour]
   - Chord --> color tone; Tempo --> brightness; Amplitude --> area of dot
   - Output .png image
 
