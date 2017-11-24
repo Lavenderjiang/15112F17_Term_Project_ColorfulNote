@@ -1,0 +1,4 @@
+[cli]
+bears = SpaceConsistencyBear
+files = mapping.py
+use_spaces = True

@@ -6,7 +6,9 @@ change the chunk size (sampling rate)
 **2. Module Matplotlib/pyaudio not found**  
 change shell configuration, make sure you are in the correct env with correct python version  
 **3. Matplotlib cannot dymanically graph**    
-set output = False and scale x_lim and y_lim  
+set output = False and scale x_lim and y_lim
+**4. argmax() always return 0**
+The first 20 ydata should be ignored as it is discontinuous 
 
 
 ## gcloud
