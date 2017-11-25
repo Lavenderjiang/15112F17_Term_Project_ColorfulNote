@@ -2,6 +2,7 @@ import pyaudio
 from array import array
 from struct import pack #used to unpack audio data into integer
 from ast import literal_eval
+from math import log2
 import numpy as np
 np.set_printoptions(threshold=np.nan) #print full np array
 import matplotlib.pyplot as plt
@@ -24,8 +25,8 @@ def debugPlot():
             self.stop = True
             print('stop',self.stop)
     
-    #plt.ion()
     fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
+
     
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
@@ -38,7 +39,6 @@ def debugPlot():
                     channels=CHANNELS,
                     rate=RATE,
                     input=True,
-                    #output=True,
                     frames_per_buffer=CHUNK)
 
     print("* recording")
@@ -90,7 +90,7 @@ def debugPlot():
         maxi = np.where(real_y==maxAmp)
         curFreq= freqs[maxi]+offset
         avgAmp = sum(np.abs(data_np))/len(data_np)
-        print("cur,avg:",curFreq,avgAmp)
+        #print("cur,avg:",curFreq,avgAmp)
         
         #make sure curFreq is in legal range
         res.append((np.asscalar(curFreq%800),avgAmp))
@@ -111,11 +111,57 @@ def debugPlot():
         f.write("\n")
     f.close()
 
+#copied from 112 course website
+import decimal
+def roundHalfUp(d):
+    # Round to nearest with ties going away from zero.
+    rounding = decimal.ROUND_HALF_UP
+    # See other rounding options here:
+    # https://docs.python.org/3/library/decimal.html#rounding-modes
+    return int(decimal.Decimal(d).to_integral_value(rounding=rounding))
 
+def fToNote(f):
+    C0 = 16.35
+    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    halfSteps = roundHalfUp(12*log2(f/C0)) #formula taken from John D. Cook
+    octave = halfSteps/12
+    pitch = notes[halfSteps%12]
+    return "%s%d"%(pitch,octave)
+
+def testFConversion():
+    print(fToNote(440)) #A4
+    print(fToNote(391)) #G4
+    print(fToNote(800)) #G5
+    print(fToNote(743)) #Fsharp5
+
+def pitchToColor(pitch):
+    pass
+
+def convertToArea(stren):
+    threshold = 5
+    loudness = ["tiny","low","medium","high"]
+    radii = [3,5,10,20]
+    if stren<5: return None
+    elif stren<30: i = 0 #5~30
+    elif stren<50: i = 1 #30~50
+    elif stren<60: i = 2 #50~60
+    else: i = 3          #60~70
+    return (loudness[i],radii[i])
+    
+def testAreaConversion():
+    print(convertToArea(42.7)) #('low',5)
+    print(convertToArea(68.9)) #('high', 20)
+    
 def extractData():
     f = open("data.txt","r")
     res = []
     #use literal_eval to safety turn string back to tuple
     for line in f:
         res.append(literal_eval(line))
-    print(res)
+    #first is frequency(0~800), second is strength(0~64)
+    for d in res:
+        freq = d[0]
+        pitch = fToNote(freq)
+        print(pitch)
+        stren = d[1]
+    #print(res)
