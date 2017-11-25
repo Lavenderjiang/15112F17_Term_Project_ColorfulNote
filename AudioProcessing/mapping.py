@@ -6,6 +6,7 @@ from math import log2
 import numpy as np
 np.set_printoptions(threshold=np.nan) #print full np array
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import wave
 import struct
 fft = np.fft.fft
@@ -25,9 +26,19 @@ def debugPlot():
             self.stop = True
             print('stop',self.stop)
     
-    fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
+    circle1 = plt.Circle((0, 0), 0.2, color='r')
+    circle2 = plt.Circle((0.5, 0.5), 0.2, color='blue')
+    circle3 = plt.Circle((0,0), 0.4, color='g')
 
     
+    #fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
+    fig, (ax, ax2, ax3) = plt.subplots(3,1,figsize=(10, 15),
+                                       gridspec_kw = {'height_ratios':[1,1,5]})
+
+    # ax3.plot(20,30,'bo',fillstyle='full',markersize=5)
+    # ax3.plot(5,10,'yo',fillstyle='full',markersize=20)
+    # ax3.plot(0,0,'ro',fillstyle='full',markersize=30)
+        
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
     CHANNELS = 1 #built-in microphone is monotone
@@ -65,6 +76,12 @@ def debugPlot():
     ax2.set_ylabel('volume')
     ax2.set_xlim(20,RATE/20) #at 0 line is discontinuous
     
+    # ax3.add_artist(circle3)
+    # ax3.add_artist(circle2)
+    # ax3.add_artist(circle1)
+
+    fig.tight_layout()
+
     plt.show(block=False)
     
     print('stream started')
@@ -94,7 +111,7 @@ def debugPlot():
         
         #make sure curFreq is in legal range
         res.append((np.asscalar(curFreq%800),avgAmp))
-        
+                
         #update graph
         try:
             fig.canvas.draw()
