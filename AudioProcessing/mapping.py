@@ -3,6 +3,8 @@ from array import array
 from struct import pack #used to unpack audio data into integer
 from ast import literal_eval
 from math import log2
+from pylab import *
+from matplotlib.gridspec import GridSpec
 import numpy as np
 np.set_printoptions(threshold=np.nan) #print full np array
 import matplotlib.pyplot as plt
@@ -10,6 +12,13 @@ import matplotlib.patches as patches
 import wave
 import struct
 fft = np.fft.fft
+
+#copied from matploblib official tutorial
+def make_ticklabels_invisible(fig):
+    for i, ax in enumerate(fig.axes):
+        ax.text(0.5, 0.5, "ax%d" % (i+1), va="center", ha="center")
+        for tl in ax.get_xticklabels() + ax.get_yticklabels():
+            tl.set_visible(False)
 
 def debugPlot():
     offset = 157
@@ -26,14 +35,41 @@ def debugPlot():
             self.stop = True
             print('stop',self.stop)
     
-    circle1 = plt.Circle((0, 0), 0.2, color='r')
-    circle2 = plt.Circle((0.5, 0.5), 0.2, color='blue')
-    circle3 = plt.Circle((0,0), 0.4, color='g')
+    # circle1 = plt.Circle((0, 0), 0.2, color='r')
+    # circle2 = plt.Circle((0.5, 0.5), 0.2, color='blue')
+    # circle3 = plt.Circle((0,0), 0.4, color='g')
 
     
+    fig = plt.figure()
+    
+    gs = GridSpec(5, 5)
+    gs.update(wspace=0.05)
+    ax = plt.subplot(gs[0, :])
+    # identical to ax1 = plt.subplot(gs.new_subplotspec((0,0), colspan=3))
+    ax2 = plt.subplot(gs[1:, -2:])
+    ax3 = plt.subplot(gs[1:,:-2], polar=True)
+    
+    # r = np.arange(0, 3, 0.01)
+    # theta = 2 * np.pi * r
+    # ax3.plot(theta, r)
+    # ax3.set_rmax(3)
+    # ax3.set_rticks([0.5, 1, 1.5, 2])  # less radial ticks
+    # ax3.set_rlabel_position(-22.5)  # get radial labels away from plotted line
+    ax3.grid(True)
+    
+    r = []
+    theta = []
+    area = []
+    colors = theta
+
+    ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
+    ax3.set_alpha(0.75) #alpha is the ratio of transparency
+    
+
+
     #fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
-    fig, (ax, ax2, ax3) = plt.subplots(3,1,figsize=(10, 15),
-                                       gridspec_kw = {'height_ratios':[1,1,5]})
+    # fig, (ax, ax2, ax3) = plt.subplots(3,1,figsize=(10, 15),
+    #                                    gridspec_kw = {'height_ratios':[1,1,5]})
 
     # ax3.plot(20,30,'bo',fillstyle='full',markersize=5)
     # ax3.plot(5,10,'yo',fillstyle='full',markersize=20)
@@ -65,23 +101,19 @@ def debugPlot():
     
     # basic formatting for the axes
     ax.set_title('AUDIO WAVEFORM')
-    ax.set_xlabel('samples')
-    ax.set_ylabel('volume')
+    #ax.set_xlabel('samples')
+    #ax.set_ylabel('volume')
     ax.set_ylim(0, 255)
     ax.set_xlim(0, 2 * CHUNK)
     plt.setp(ax, xticks=[0, CHUNK, 2 * CHUNK], yticks=[0, 128, 255])
 
-    ax2.set_title('Amplitude over frequency')
-    ax2.set_xlabel('freq')
-    ax2.set_ylabel('volume')
+    #ax2.set_title('Amplitude over frequency')
+    #ax2.set_xlabel('freq')
+    #ax2.set_ylabel('volume')
     ax2.set_xlim(20,RATE/20) #at 0 line is discontinuous
     
-    # ax3.add_artist(circle3)
-    # ax3.add_artist(circle2)
-    # ax3.add_artist(circle1)
-
-    fig.tight_layout()
-
+    #fig.tight_layout()
+    make_ticklabels_invisible(fig)
     plt.show(block=False)
     
     print('stream started')
@@ -109,9 +141,19 @@ def debugPlot():
         avgAmp = sum(np.abs(data_np))/len(data_np)
         #print("cur,avg:",curFreq,avgAmp)
         
+        
+        r.append(rand(2))
+        theta.append(rand(2))
+        area.append(rand(2))
+        print(area)
+        ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
+        
         #make sure curFreq is in legal range
         res.append((np.asscalar(curFreq%800),avgAmp))
-                
+        
+        # ax3.add_artist(circle3)
+        # ax3.add_artist(circle2)
+        # ax3.add_artist(circle1)
         #update graph
         try:
             fig.canvas.draw()
@@ -151,7 +193,7 @@ def testFConversion():
     print(fToNote(800)) #G5
     print(fToNote(743)) #Fsharp5
 
-def pitchToColor(pitch):
+def pitchToAngle(pitch):
     pass
 
 def convertToArea(stren):
