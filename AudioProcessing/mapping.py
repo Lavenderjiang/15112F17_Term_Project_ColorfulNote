@@ -3,6 +3,8 @@ from array import array
 from struct import pack #used to unpack audio data into integer
 from ast import literal_eval
 from math import log2
+from random import uniform
+from random import randint
 from pylab import *
 from matplotlib.gridspec import GridSpec
 import numpy as np
@@ -22,6 +24,9 @@ def make_ticklabels_invisible(fig):
 
 def debugPlot():
     offset = 157
+    startR = 0.1
+    stepR = 0.1
+    curTime = 0
     class MouseStop:
         def __init__(self, line):
             self.line = line
@@ -35,11 +40,6 @@ def debugPlot():
             self.stop = True
             print('stop',self.stop)
     
-    # circle1 = plt.Circle((0, 0), 0.2, color='r')
-    # circle2 = plt.Circle((0.5, 0.5), 0.2, color='blue')
-    # circle3 = plt.Circle((0,0), 0.4, color='g')
-
-    
     fig = plt.figure()
     
     gs = GridSpec(5, 5)
@@ -47,10 +47,10 @@ def debugPlot():
     ax = plt.subplot(gs[0, :])
     # identical to ax1 = plt.subplot(gs.new_subplotspec((0,0), colspan=3))
     ax2 = plt.subplot(gs[1:, -2:])
-    ax3 = plt.subplot(gs[1:,:-2], polar=True)
     
-    # r = np.arange(0, 3, 0.01)
-    # theta = 2 * np.pi * r
+    
+    
+    ax3 = plt.subplot(gs[1:,:-2], polar=True)
     # ax3.plot(theta, r)
     # ax3.set_rmax(3)
     # ax3.set_rticks([0.5, 1, 1.5, 2])  # less radial ticks
@@ -63,21 +63,14 @@ def debugPlot():
     colors = theta
 
     ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
-    ax3.set_alpha(0.75) #alpha is the ratio of transparency
+    ax3.set_alpha(0.5) #alpha is the ratio of transparency
     
-
-
-    #fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
-    # fig, (ax, ax2, ax3) = plt.subplots(3,1,figsize=(10, 15),
-    #                                    gridspec_kw = {'height_ratios':[1,1,5]})
-
-    # ax3.plot(20,30,'bo',fillstyle='full',markersize=5)
-    # ax3.plot(5,10,'yo',fillstyle='full',markersize=20)
-    # ax3.plot(0,0,'ro',fillstyle='full',markersize=30)
-        
+    
+    #CHUNK = 8192
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
     CHANNELS = 1 #built-in microphone is monotone
+    #RATE = 44100
     RATE = 16000
 
     p = pyaudio.PyAudio()
@@ -120,7 +113,8 @@ def debugPlot():
     
     res=[]
     while first.stop == False:
-        data = stream.read(CHUNK)
+        #print("in while loop!")
+        data = stream.read(CHUNK,exception_on_overflow = False)
         data_int = struct.unpack(str(2*CHUNK)+'B',data)
         #print(data_int)
         data_np = np.array(data_int, dtype='b')[::2] 
@@ -137,31 +131,49 @@ def debugPlot():
         maxAmp = max(real_y)
         #index of the max frequency
         maxi = np.where(real_y==maxAmp)
+        
+        
+        
         curFreq= freqs[maxi]+offset
-        avgAmp = sum(np.abs(data_np))/len(data_np)
+        curPitch = fToNote(curFreq)
+        avgAmp = np.asscalar(sum(np.abs(data_np))/len(data_np))
         #print("cur,avg:",curFreq,avgAmp)
         
+        print("calulating new data!")
+        #process
+        #if convertToArea(avgAmp) == None: continue #ignore the weak noise
         
-        r.append(rand(2))
-        theta.append(rand(2))
-        area.append(rand(2))
-        print(area)
+        newArea = convertToArea(avgAmp) #the second entry is numeric val
+        newAngle = fToAngle(np.asscalar(curFreq))
+        newR = startR + stepR * (curTime // 3)
+        print("A:",newArea)
+        print("theta:",newAngle)
+        print("r:",newR)
+        print("pitch:",curPitch)
+        print("**********\n")
+        area.append(newArea)
+        theta.append(newAngle)
+        r.append(newR)
         ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
+        # r.append(rand(2))
+        # theta.append(rand(2))
+        # area.append(rand(2))
+        #print(area)
+        
         
         #make sure curFreq is in legal range
-        res.append((np.asscalar(curFreq%800),avgAmp))
-        
-        # ax3.add_artist(circle3)
-        # ax3.add_artist(circle2)
-        # ax3.add_artist(circle1)
+        #res.append((np.asscalar(curFreq%800),avgAmp))
         #update graph
+        
         try:
             fig.canvas.draw()
             fig.canvas.flush_events()
+            curTime += 1 #keep time
             
         except:
             print('stream stopped')
             break
+       
     
     #write audio data to file
     f = open("data.txt","w")
@@ -179,7 +191,10 @@ def roundHalfUp(d):
     # https://docs.python.org/3/library/decimal.html#rounding-modes
     return int(decimal.Decimal(d).to_integral_value(rounding=rounding))
 
+#Detection Range: A0(27.5Hz) ~ G5(783Hz)
+#59 half steps in total
 def fToNote(f):
+    f = np.asscalar(f) #convert to scalar
     C0 = 16.35
     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     halfSteps = roundHalfUp(12*log2(f/C0)) #formula taken from John D. Cook
@@ -193,19 +208,35 @@ def testFConversion():
     print(fToNote(800)) #G5
     print(fToNote(743)) #Fsharp5
 
-def pitchToAngle(pitch):
-    pass
+def fToAngle(f):
+    unitAngle = 2*np.pi/59
+    print(unitAngle)
+    C0 = 16.35
+    halfStepsToC0 = roundHalfUp(12*log2(f/C0))
+    halfStepsToA0 = halfStepsToC0 - 9
+    startAngle = unitAngle * halfStepsToA0
+    #fAngle = randint(0,2*np.pi)
+    #print(startAngle)
+    # print(startAngle+unitAngle)
+    fAngle = uniform(startAngle,startAngle+unitAngle)
+    #print("degree:",360/(2*np.pi)*fAngle)
+    return fAngle
+
+def testAngleConversion():
+    fToAngle(800) #around 360 degree
+    fToAngle(27.5) #around 0 degree
+    fToAngle(400) #around 300 degree
 
 def convertToArea(stren):
     threshold = 5
     loudness = ["tiny","low","medium","high"]
-    radii = [3,5,10,20]
-    if stren<5: return None
-    elif stren<30: i = 0 #5~30
-    elif stren<50: i = 1 #30~50
-    elif stren<60: i = 2 #50~60
-    else: i = 3          #60~70
-    return (loudness[i],radii[i])
+    radii = [30,50,100,150]
+    if stren<5: return 5
+    elif stren<30: res = randint(5,30)
+    elif stren<50: res = randint(30,50)
+    elif stren<60: res = randint(50,100)
+    else: res = randint(100,150)  
+    return res
     
 def testAreaConversion():
     print(convertToArea(42.7)) #('low',5)
