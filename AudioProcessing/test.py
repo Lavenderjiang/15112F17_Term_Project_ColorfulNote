@@ -24,14 +24,19 @@ def make_ticklabels_invisible(fig):
             tl.set_visible(False)
 
 def debugPlot():
-    #ax --> volume over time; ax2 --> volume over freq; a3 --> drawing
-    mpl.rcParams['toolbar'] = 'None' #disable ugly default toolbar
-    #####constant
+    #ax  --> volume over time
+    #ax2 --> volume over freq
+    #ax3  --> drawing
+################################################################################
+############################### Constants ######################################
+################################################################################
     offset = 157
     startR = 0.1
     stepR = 0.1
     curTime = 0
-    #############
+################################################################################
+############################ Interaction Class #################################
+################################################################################
     class MouseStop:
         def __init__(self, line):
             self.line = line
@@ -44,7 +49,7 @@ def debugPlot():
             print('click', event)
             self.stop = True
             print('stop',self.stop)
-    
+###########################################################################
     #set the handdrawn style      
     with plt.xkcd():
 
@@ -55,10 +60,11 @@ def debugPlot():
         # ax = plt.subplot(gs[0, :])
         # identical to ax1 = plt.subplot(gs.new_subplotspec((0,0), colspan=3))
         ax2 = plt.subplot(gs[:, -1:])
-        ax3 = plt.subplot(gs[:,:-1], polar=True)
+        ax3 = plt.subplot(gs[:,:-1], polar=True,autoscale_on=False)
         ax3.axis('off')
         # ax3.plot(theta, r)
         ax3.grid(True)
+        pitchText = ax2.text(0.05, 0.9, '')
         
         r = []
         theta = []
@@ -67,7 +73,11 @@ def debugPlot():
     
         ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
         ax3.set_alpha(0.5) #alpha is the ratio of transparency
-    
+
+################################################################################
+############################### PyAudio ########################################
+################################################################################
+
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
     CHANNELS = 1 #built-in microphone is monotone
@@ -81,8 +91,12 @@ def debugPlot():
                     input=True,
                     frames_per_buffer=CHUNK)
 
-    print("* recording")
-
+    print("Pyaudio recording")
+    
+################################################################################
+########################## MPL Initialization ##################################
+################################################################################
+    mpl.rcParams['toolbar'] = 'None' #disable ugly default toolbar
     # variable for plotting
     x = np.arange(0, 2 * CHUNK, 2)
     x_fft = np.linspace(0,RATE,CHUNK) #max freq is sampling rate 
@@ -90,18 +104,21 @@ def debugPlot():
     # create a line object with random data
     #line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
     line_fft, = ax2.plot(np.random.rand(CHUNK),x_fft,  '-', lw=2)
+    curFreq = 0
     
     
     first = MouseStop(line_fft)
     ax2.set_ylim(20,RATE/20) #at 0 line is discontinuous
-    ax2.axhline(y=100,xmin=0,xmax=800,c="red",linewidth=30,zorder=0)
+    
     
     #fig.tight_layout()
     make_ticklabels_invisible(fig)
     plt.show(block=False)
     
     print('stream started')
-    
+################################################################################
+########################## Animation Loop ######################################
+################################################################################    
     res=[]
     while first.stop == False:
         #print("in while loop!")
@@ -126,6 +143,8 @@ def debugPlot():
         curFreq= freqs[maxi]+offset
         curPitch = fToNote(curFreq)
         avgAmp = np.asscalar(sum(np.abs(data_np))/len(data_np))
+        pitchText.set_text(curPitch)
+
         #print("cur,avg:",curFreq,avgAmp)
         
         print("calulating new data!")
@@ -143,7 +162,8 @@ def debugPlot():
         r.append(newR)
         ax2.text(2, 1,curPitch)
         ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
-        
+        #ax2.axhline(y=curFreq,xmin=0,xmax=800,c="red",linewidth=30,zorder=0)
+                
         #make sure curFreq is in legal range
         #res.append((np.asscalar(curFreq%800),avgAmp))
         #update graph
@@ -157,7 +177,9 @@ def debugPlot():
             print('stream stopped')
             break
        
-    
+################################################################################
+########################## Export Data #########################################
+################################################################################
     #write audio data to file
     f = open("data.txt","w")
     for freq in res:
