@@ -1,12 +1,14 @@
 # 15112F17 Timesheet
 ## Design
-  - Storyboard, proposal, competitive analysis [Done on Nov 21; Took 2 hours] 
+  - Storyboard, proposal, competitive analysis [Done on Nov 21; Took 2 hours]
+  - Matplotlib gridscale UI + display real-time text [Done on Nov 24; Took 1.5 hour] 
 
 ## pyAudio
 Collect and analyze audio data
   - Module Installation [Done on Nov 16; Took 3 hours]
   - Dynamic Spectrum Visualizer [Done on Nov 21; Took 3 hours]
   - FFT for Pitch Detection [Done on Nov 23; Took 1.5 hours]
+  - Non-blocking mode for audio input [Done on Nov 25; Took 0.5 hour]
   - Chord detection
   - Tempo detection
 
@@ -14,7 +16,8 @@ Collect and analyze audio data
 Convert audio data to graph
   - Stop updating plot with key event [Done on Nov 23; Took 1 hour]
   - Write audio data to .txt file and read as a list of tuples [Done on Nov 24; Took 1 hour]
-  - Chord --> color tone; Tempo --> brightness; Amplitude --> area of dot
+  - Amplitude --> area of dot; Pitch --> polar angle; polar angle --> colormap [Done on Nov 25; Took 3 hours]
+  - Chord --> color tone; Tempo --> brightness 
   - Output .png image
 
 ## webapp
@@ -29,3 +32,5 @@ Host the website on Cloud
 ## Bonus
 Nice to do
   - write fft from scratch
+  - Matplotlib color bar
+  - Matplotlib Handdrawn Style

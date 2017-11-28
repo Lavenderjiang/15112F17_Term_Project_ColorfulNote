@@ -16,3 +16,7 @@ The first 20 ydata should be ignored as it is discontinuous
 add the path (the one inside /bin) to bash profile  
 **2. cannot Deploy**  
 add app.yaml file to configure the deployment  
+
+## mis
+**1. cannot slice Nonetype**
+Try not to return None for special case, return something that is the sametype as regular output. E.g. if regular output is digit, for special case return 0.

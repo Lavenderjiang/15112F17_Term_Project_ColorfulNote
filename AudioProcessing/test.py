@@ -24,11 +24,14 @@ def make_ticklabels_invisible(fig):
             tl.set_visible(False)
 
 def debugPlot():
-    mpl.rcParams['toolbar'] = 'None'
+    #ax --> volume over time; ax2 --> volume over freq; a3 --> drawing
+    mpl.rcParams['toolbar'] = 'None' #disable ugly default toolbar
+    #####constant
     offset = 157
     startR = 0.1
     stepR = 0.1
     curTime = 0
+    #############
     class MouseStop:
         def __init__(self, line):
             self.line = line
@@ -42,31 +45,28 @@ def debugPlot():
             self.stop = True
             print('stop',self.stop)
     
-    fig = plt.figure()
-    
-    gs = GridSpec(5, 5)
-    gs.update(wspace=0.05)
-    ax = plt.subplot(gs[0, :])
-    # identical to ax1 = plt.subplot(gs.new_subplotspec((0,0), colspan=3))
-    ax2 = plt.subplot(gs[1:, -2:])
-    
-    
-    
-    ax3 = plt.subplot(gs[1:,:-2], polar=True)
-    ax3.axis('off')
-    # ax3.plot(theta, r)
-    # ax3.set_rmax(3)
-    # ax3.set_rticks([0.5, 1, 1.5, 2])  # less radial ticks
-    # ax3.set_rlabel_position(-22.5)  # get radial labels away from plotted line
-    ax3.grid(True)
-    
-    r = []
-    theta = []
-    area = []
-    colors = theta 
+    #set the handdrawn style      
+    with plt.xkcd():
 
-    ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
-    ax3.set_alpha(0.5) #alpha is the ratio of transparency
+        fig = plt.figure()
+        
+        gs = GridSpec(5, 5)
+        gs.update(wspace=0.05)
+        # ax = plt.subplot(gs[0, :])
+        # identical to ax1 = plt.subplot(gs.new_subplotspec((0,0), colspan=3))
+        ax2 = plt.subplot(gs[:, -1:])
+        ax3 = plt.subplot(gs[:,:-1], polar=True)
+        ax3.axis('off')
+        # ax3.plot(theta, r)
+        ax3.grid(True)
+        
+        r = []
+        theta = []
+        area = []
+        colors = theta 
+    
+        ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
+        ax3.set_alpha(0.5) #alpha is the ratio of transparency
     
     CHUNK =  1024*2
     FORMAT = pyaudio.paInt16
@@ -85,25 +85,16 @@ def debugPlot():
 
     # variable for plotting
     x = np.arange(0, 2 * CHUNK, 2)
-    x_fft = np.linspace(0,RATE,CHUNK)
+    x_fft = np.linspace(0,RATE,CHUNK) #max freq is sampling rate 
+    
     # create a line object with random data
-    line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
-    line_fft, = ax2.plot(x_fft, np.random.rand(CHUNK), '-', lw=2)
+    #line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
+    line_fft, = ax2.plot(np.random.rand(CHUNK),x_fft,  '-', lw=2)
     
-    first = MouseStop(line)
     
-    # basic formatting for the axes
-    ax.set_title('AUDIO WAVEFORM')
-    #ax.set_xlabel('samples')
-    #ax.set_ylabel('volume')
-    ax.set_ylim(0, 255)
-    ax.set_xlim(0, 2 * CHUNK)
-    plt.setp(ax, xticks=[0, CHUNK, 2 * CHUNK], yticks=[0, 128, 255])
-
-    #ax2.set_title('Amplitude over frequency')
-    #ax2.set_xlabel('freq')
-    #ax2.set_ylabel('volume')
-    ax2.set_xlim(20,RATE/20) #at 0 line is discontinuous
+    first = MouseStop(line_fft)
+    ax2.set_ylim(20,RATE/20) #at 0 line is discontinuous
+    ax2.axhline(y=100,xmin=0,xmax=800,c="red",linewidth=30,zorder=0)
     
     #fig.tight_layout()
     make_ticklabels_invisible(fig)
@@ -119,20 +110,18 @@ def debugPlot():
         #print(data_int)
         data_np = np.array(data_int, dtype='b')[::2] 
         #print(data_np)
-        line.set_ydata(data_np)
+        #line.set_ydata(data_np)
         #fft
         y_fft = fft(data_int)
         #slice to get ride of conjugate and rescale
         scaled_y = np.abs(y_fft[:CHUNK]) * 2 / (128*CHUNK)
-        line_fft.set_ydata(scaled_y)
+        line_fft.set_xdata(scaled_y)
         
         real_y = scaled_y[20:]
-        freqs =line_fft.get_xdata()
+        freqs =line_fft.get_ydata()
         maxAmp = max(real_y)
         #index of the max frequency
         maxi = np.where(real_y==maxAmp)
-        
-        
         
         curFreq= freqs[maxi]+offset
         curPitch = fToNote(curFreq)
@@ -152,6 +141,7 @@ def debugPlot():
         area.append(newArea)
         theta.append(newAngle)
         r.append(newR)
+        ax2.text(2, 1,curPitch)
         ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
         
         #make sure curFreq is in legal range
