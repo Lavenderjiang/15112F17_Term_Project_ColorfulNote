@@ -1,4 +1,4 @@
 [cli]
 bears = SpaceConsistencyBear
-files = src/*.c
+files = AudioProcessing/*.py
 use_spaces = True

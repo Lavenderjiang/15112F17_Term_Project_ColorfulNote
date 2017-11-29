@@ -27,7 +27,6 @@ import wave
 np.set_printoptions(threshold=np.nan) #print full np array
 fft = np.fft.fft
 
-
 ################################################################################
 ############################### Helpers ########################################
 ################################################################################
@@ -123,15 +122,11 @@ def drawDotRing(r):
     radii = [r for i in range(len(angles))]
     print(radii)
     
-    
-
-    
 ################################################################################
 ################################## Main ########################################
 ################################################################################
 
 def debugPlot():
-    
     '''The main fucntion for displaying real-time drawing'''
     
 ################################################################################
@@ -193,12 +188,12 @@ def debugPlot():
     area = []
     colors = theta 
     x_fft = np.linspace(0,RATE,CHUNK) #max freq is sampling rate 
-    
     mpl.rcParams['toolbar'] = 'None' #disable ugly default toolbar
+    
     #set the handdrawn style      
     with plt.xkcd():
 
-        fig = plt.figure("ColorfulNote")
+        fig = plt.figure("colorfulNote")
         
         #arrange subplot positions using gridspec
         gs = GridSpec(5, 5)
@@ -210,9 +205,8 @@ def debugPlot():
         ax2.set_ylim(20,RATE/20) #at 0 line is discontinuous
         ax3.axis('on')
         ax3.grid(False)
-        ax3.scatter(theta, r, c=colors, s=area) #, cmap=cm.cool)
+        ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
         ax3.set_alpha(0.5) #alpha is the ratio of transparency
-        #ax3.set_facecolor("black")
         
         #create line and text objects to be updated
         pitchText = ax2.text(0.05, 0.9, '')
@@ -223,8 +217,6 @@ def debugPlot():
         
         #configue the entire figure
         #fig.tight_layout()
-        fig.set_size_inches((20,25))
-    
         make_ticklabels_invisible(fig)
         plt.show(block=False)
     
@@ -235,9 +227,7 @@ def debugPlot():
 ################################################################################    
     
     res=[]
-    
     while first.stop == False:
-        print("in loop!")
         data = stream.read(CHUNK,exception_on_overflow = False)
         data_int = struct.unpack(str(2*CHUNK)+'B',data)
         data_np = np.array(data_int, dtype='b')[::2] 
@@ -261,16 +251,16 @@ def debugPlot():
 
         #print("cur,avg:",curFreq,avgAmp)
         
-        #print("calulating new data!")
+        # print("calulating new data!")
         #process        
         newArea = convertToArea(avgAmp) #the second entry is numeric val
         newAngle = fToAngle(np.asscalar(curFreq))
         newR = startR + stepR * (curTime // 3)
-        #print("A:",newArea)
-        #print("theta:",newAngle)
-        #print("r:",newR)
-        #print("pitch:",curPitch)
-        #print("**********\n")
+        # print("A:",newArea)
+        # print("theta:",newAngle)
+        # print("r:",newR)
+        # print("pitch:",curPitch)
+        # print("**********\n")
         area.append(newArea)
         theta.append(newAngle)
         r.append(newR)
@@ -283,7 +273,6 @@ def debugPlot():
         #update graph
         
         try:
-            print("drawing!")
             fig.canvas.draw()
             fig.canvas.flush_events()
             curTime += 1 #keep time
@@ -302,7 +291,7 @@ def debugPlot():
         f.write("\n")
     f.close()
     
-    #save png file
+#save png file
     extent = ax3.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     fig.savefig('colorful_drawing.png', bbox_inches=extent)
 

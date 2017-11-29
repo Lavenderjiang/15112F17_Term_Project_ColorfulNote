@@ -18,7 +18,8 @@ Convert audio data to graph
   - Write audio data to .txt file and read as a list of tuples [Done on Nov 24; Took 1 hour]
   - Amplitude --> area of dot; Pitch --> polar angle; polar angle --> colormap [Done on Nov 25; Took 3 hours]
   - Chord --> color tone; Tempo --> brightness 
-  - Output .png image
+  - Output .png image [Done on Nov 27; Took 0.5 hour]
+  - One ring at a time
 
 ## webapp
 UI for the program
@@ -31,6 +32,7 @@ Host the website on Cloud
 
 ## Bonus
 Nice to do
+  - speech recognition 
   - write fft from scratch
   - Matplotlib color bar
-  - Matplotlib Handdrawn Style
+  - Matplotlib Handdrawn Style [Done on Nov 27; Took 0.5 hour]
