@@ -19,7 +19,7 @@ Convert audio data to graph
   - Amplitude --> area of dot; Pitch --> polar angle; polar angle --> colormap [Done on Nov 25; Took 3 hours]
   - Chord --> color tone; Tempo --> brightness 
   - Output .png image [Done on Nov 27; Took 0.5 hour]
-  - One ring at a time
+  - One ring at a time [Done on Nov 28; Took 1 hour]
 
 ## webapp
 UI for the program
@@ -32,7 +32,8 @@ Host the website on Cloud
 
 ## Bonus
 Nice to do
-  - speech recognition 
+  - speech recognition [Tried on Nov 28; Took 0.5 hour]
+  - Add welcome screen and end screen [Tried on Nov 28; Took 1.5 hour]
   - write fft from scratch
   - Matplotlib color bar
   - Matplotlib Handdrawn Style [Done on Nov 27; Took 0.5 hour]

@@ -319,34 +319,34 @@ def debugPlot():
     #ax3.set_facecolor("yellow")
     extent = ax3.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     fig.savefig('colorful_drawing.png', bbox_inches=extent)
-    another()
+    EndScreen()
     
 ##########################
+
 def startScreen():
-   
-    plt.gcf().clear()
+    stop = False
+    def onclick(event):
+        print('You clicked!')
+        stop = True
+    
+    plt.gcf().clear() #get current figure and clear history setting
     mpl.rcParams['toolbar'] = 'None'
-    # plt.figure creates a matplotlib.figure.Figure instance
     fig = plt.figure("colorfulNote",figsize=(20,10))
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+    
     rect = fig.patch # a rectangle instance
     rect.set_facecolor('#FFEE93')
     
     img=mpimg.imread('logo.png')
+    
     imgplot = plt.imshow(img)
-    "#44d9e6"
-    plt.text(0.6, 0.5, "Welcome!\nHi!", backgroundcolor="red",size=20,alpha=0.5,
-             ha="center", va="center",
-             bbox=dict(boxstyle="round", facecolor="#44d9e6",
-                       edgecolor="#44d9e6"))
-                     # fc=(1., 0.8, 0.8),
-            #         )
-            # )
+
    
     plt.axis('off')
-
-    plt.show()
-
-def another():
+    plt.show(block=False)
+    if stop==True: plt.close()
+    
+def EndScreen():
     plt.gcf().clear()
     t = np.arange(0.0, 2.0, 0.01)
     s = 1 + np.sin(2*np.pi*t)

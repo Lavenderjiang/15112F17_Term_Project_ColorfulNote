@@ -20,3 +20,6 @@ add app.yaml file to configure the deployment
 ## mis
 **1. cannot slice Nonetype**
 Try not to return None for special case, return something that is the sametype as regular output. E.g. if regular output is digit, for special case return 0.
+**2. matplotlib welcome screen**
+Matplotlib widgets and animation turns out to be very difficult to use and not 
+very customizable. I'm considering moving the entire program to tk backend. 
