@@ -219,7 +219,8 @@ def debugPlot():
         #fig.tight_layout()
         make_ticklabels_invisible(fig)
         plt.show(block=False)
-    
+        
+
     print('stream started')
     
 ################################################################################

@@ -11,10 +11,11 @@ import pyaudio
 from pylab import *
 import numpy as np 
 import matplotlib as mpl
-#mpl.rcParams["backend"] = "Qt4Agg"
+from matplotlib.widgets import Button
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.gridspec import GridSpec
+import matplotlib.image as mpimg
 from array import array
 import struct
 from struct import pack #used to unpack audio data into integer
@@ -117,14 +118,20 @@ def extractData():
         pitch = fToNote(freq)
         stren = d[1]
 
-def drawDotRing(r):
+def calcDotRing(r,a):
+    '''
+    @param r: curR calculated from time
+    @param a: curA calculated from sound stren
+    @return: param to append for a ring of colored circles
+    '''
     angles = np.arange(2*np.pi,step=0.05)
-    print(angles)
     radii = [r for i in range(len(angles))]
-    print(radii)
-    
-    
+    areas = [a for i in range(len(angles))]
+    return angles,radii,areas
 
+def testCalcRing():
+    print(calcDotRing(3,20))
+    print(calcDotRing(5,30))
     
 ################################################################################
 ################################## Main ########################################
@@ -142,6 +149,11 @@ def debugPlot():
     startR = 0.1
     stepR = 0.1
     curTime = 0
+    hi = False
+    
+
+    startScreen()
+    plt.gcf().clear()
     
 ################################################################################
 ############################ Interaction Class #################################
@@ -194,11 +206,12 @@ def debugPlot():
     colors = theta 
     x_fft = np.linspace(0,RATE,CHUNK) #max freq is sampling rate 
     
+    
     mpl.rcParams['toolbar'] = 'None' #disable ugly default toolbar
     #set the handdrawn style      
     with plt.xkcd():
 
-        fig = plt.figure("ColorfulNote")
+        fig = plt.figure("ColorfulNote",figsize=(20,10))
         
         #arrange subplot positions using gridspec
         gs = GridSpec(5, 5)
@@ -212,7 +225,9 @@ def debugPlot():
         ax3.grid(False)
         ax3.scatter(theta, r, c=colors, s=area) #, cmap=cm.cool)
         ax3.set_alpha(0.5) #alpha is the ratio of transparency
-        #ax3.set_facecolor("black")
+        ax3.set_facecolor("black")
+        ax3.margins(y=.00001, x=.00001)
+        #ax3.autoscale(False)
         
         #create line and text objects to be updated
         pitchText = ax2.text(0.05, 0.9, '')
@@ -222,14 +237,11 @@ def debugPlot():
         first = MouseStop(line_fft)
         
         #configue the entire figure
-        #fig.tight_layout()
-        fig.set_size_inches((20,25))
-    
         make_ticklabels_invisible(fig)
         plt.show(block=False)
     
     print('stream started')
-    
+    #fig.set_size_inches((20,20))
 ################################################################################
 ########################## Animation Loop ######################################
 ################################################################################    
@@ -266,14 +278,15 @@ def debugPlot():
         newArea = convertToArea(avgAmp) #the second entry is numeric val
         newAngle = fToAngle(np.asscalar(curFreq))
         newR = startR + stepR * (curTime // 3)
+        angles,radii,areas = calcDotRing(newR,newArea)
         #print("A:",newArea)
         #print("theta:",newAngle)
         #print("r:",newR)
         #print("pitch:",curPitch)
         #print("**********\n")
-        area.append(newArea)
-        theta.append(newAngle)
-        r.append(newR)
+        area.extend(areas)
+        theta.extend(angles)
+        r.extend(radii)
         ax2.text(2, 1,curPitch)
         ax3.scatter(theta, r, c=colors, s=area, cmap=cm.cool)
         #ax2.axhline(y=curFreq,xmin=0,xmax=800,c="red",linewidth=30,zorder=0)
@@ -303,6 +316,45 @@ def debugPlot():
     f.close()
     
     #save png file
+    #ax3.set_facecolor("yellow")
     extent = ax3.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
     fig.savefig('colorful_drawing.png', bbox_inches=extent)
+    another()
+    
+##########################
+def startScreen():
+   
+    plt.gcf().clear()
+    mpl.rcParams['toolbar'] = 'None'
+    # plt.figure creates a matplotlib.figure.Figure instance
+    fig = plt.figure("colorfulNote",figsize=(20,10))
+    rect = fig.patch # a rectangle instance
+    rect.set_facecolor('#FFEE93')
+    
+    img=mpimg.imread('logo.png')
+    imgplot = plt.imshow(img)
+    "#44d9e6"
+    plt.text(0.6, 0.5, "Welcome!\nHi!", backgroundcolor="red",size=20,alpha=0.5,
+             ha="center", va="center",
+             bbox=dict(boxstyle="round", facecolor="#44d9e6",
+                       edgecolor="#44d9e6"))
+                     # fc=(1., 0.8, 0.8),
+            #         )
+            # )
+   
+    plt.axis('off')
 
+    plt.show()
+
+def another():
+    plt.gcf().clear()
+    t = np.arange(0.0, 2.0, 0.01)
+    s = 1 + np.sin(2*np.pi*t)
+    plt.plot(t, s)
+    
+    plt.xlabel('time (s)')
+    plt.ylabel('voltage (mV)')
+    plt.title('About as simple as it gets, folks')
+    plt.grid(True)
+    plt.savefig("test.png")
+    plt.show()
