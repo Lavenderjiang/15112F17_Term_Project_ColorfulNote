@@ -85,6 +85,7 @@ def debugPlot():
 
     # variable for plotting
     x = np.arange(0, 2 * CHUNK, 2)
+    #print(x)
     x_fft = np.linspace(0,RATE,CHUNK)
     # create a line object with random data
     line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
@@ -128,10 +129,12 @@ def debugPlot():
         
         real_y = scaled_y[20:]
         freqs =line_fft.get_xdata()
+        print("type",type(freqs))
+        print(np.array([1,2,3]))
         maxAmp = max(real_y)
         #index of the max frequency
         maxi = np.where(real_y==maxAmp)
-        
+        print("maxi",maxi,freqs[maxi])
         
         
         curFreq= freqs[maxi]+offset

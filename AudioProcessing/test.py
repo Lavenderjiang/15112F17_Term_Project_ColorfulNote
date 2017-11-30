@@ -152,7 +152,7 @@ def debugPlot():
     hi = False
     
 
-    startScreen()
+    #startScreen()
     plt.gcf().clear()
     
 ################################################################################
@@ -251,7 +251,8 @@ def debugPlot():
     while first.stop == False:
         print("in loop!")
         data = stream.read(CHUNK,exception_on_overflow = False)
-        data_int = struct.unpack(str(2*CHUNK)+'B',data)
+        data_int = struct.unpack(str(2*CHUNK)+'B',data)#AMPLITUDES
+        
         data_np = np.array(data_int, dtype='b')[::2] 
         #line.set_ydata(data_np)
         #fft
@@ -265,6 +266,8 @@ def debugPlot():
         maxAmp = max(real_y)
         #index of the max frequency
         maxi = np.where(real_y==maxAmp)
+        print("len(real_y):",len(real_y))
+        print("len(freq): ",len(freqs))
         
         curFreq= freqs[maxi]+offset
         curPitch = fToNote(curFreq)
