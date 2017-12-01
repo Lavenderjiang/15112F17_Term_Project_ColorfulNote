@@ -543,39 +543,98 @@ def polarToCartesian(r,angle):
     y = r * math.sin(angle)
     return x,y
 
-def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR):
+def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,spacing=0):
     '''
 
+    Given the innerR and outerR of a ring, draw a ring made of circles on Canvas.
+
+    @param zeroX, zeroY: cartesian coordinate of the center of the ring
+    @param innerR: the radius of the inner circle which all ring circles are tangent to
+    @param outerR: the radius of the outer circle which all ring circles are tangent to
+    @param midR: the radius of the midCircle. The centers of all the ring circles is a subset of this circle.
+    @param spacing: an integer between 0 and 1 that determines how spreaded-out the circles are.
+                    When set to one, each circle are at least their diamater apart.  
+
+    Note:
+        All angles used are in radians.
     '''
     r = (outerR - innerR) / 2
     midR = (outerR + innerR) / 2
     halfAngle = solveAngle(midR,midR,r)
-    print(radianToDegree(halfAngle))
     fullAngle = 2 * halfAngle
+    angleWithSpace = fullAngle + spacing * fullAngle
 
-    totalSpaceAngle = 2*math.pi % fullAngle
-    totalCircle = int(2*math.pi // fullAngle)
-    unitSpaceAngle = totalSpaceAngle/totalCircle
-    #print("numCirc",totalCircle)
-    #print("space",radianToDegree(unitSpaceAngle))
+
+    #totalFillAngle = 2*math.pi % fullAngle
+    totalCircle = int( (2*math.pi) // angleWithSpace)
+    totalFillAngle = (2*math.pi) - totalCircle * angleWithSpace
+
+    #totalCircle = int( (2*math.pi - spacing*fullAngle*totalCircle) // fullAngle)
+    unitFillAngle = totalFillAngle/totalCircle 
 
 
     startAngle = 0
     for i in range(totalCircle):
-        #print("drawing!")
-        angle = startAngle + i * (unitSpaceAngle + fullAngle)
+        angle = startAngle + i * (unitFillAngle + angleWithSpace)
         cx,cy = polarToCartesian(midR,angle)
+        #coordinate offset for different center
         cx += zeroX
         cy += zeroY
         #print(cx-r,cy-r,cx+r,cy+r)
         canvas.create_oval(cx-r,cy-r,cx+r,cy+r)
 
+def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,spacing=0.7):
+    r = (outerR - innerR) / 2
+    midR = (outerR + innerR) / 2
+    halfAngle = solveAngle(midR,midR,r)
+    fullAngle = 2 * halfAngle
+    angleWithSpace = fullAngle + spacing * fullAngle
+    print("angle",angleWithSpace)
+    print((2*math.pi) // angleWithSpace)
+
+    #totalFillAngle = 2*math.pi % fullAngle
+    totalCircle = int( (2*math.pi) // angleWithSpace)
+    totalFillAngle = (2*math.pi) - totalCircle * angleWithSpace
+
+    #totalCircle = int( (2*math.pi - spacing*fullAngle*totalCircle) // fullAngle)
+    unitFillAngle = totalFillAngle/totalCircle 
+
+
+    startAngle = 0
+    for i in range(totalCircle):
+        angle = startAngle + i * (unitFillAngle + angleWithSpace)
+        cx,cy = polarToCartesian(midR,angle)
+        cx += zeroX
+        cy += zeroY
+        #coordinate offset for different center
+        drawCircleRing(canvas,cx,cy,r/3,r)
+
+class colorfulBeads(object):
+    '''
+    Has most pitch changes in an analysis cycle
+    '''
+    def __init__(self,canvas,zeroX,zeroY,innerR,outerR):
+        self.canvas = canvas
+        self.zeroX = zeroX
+        self.zeroY = zeroY
+        self.innerR = innerR
+        self.outerR = outerR
+
+    def draw(self):
+        drawCircleRing(self.canvas,self.zeroX,self.zeroY,self.innerR,self.outerR)
+
+
+class wavyRing(object): pass
+
+class pureRing(object): pass
+
 
 def createRedrawAll(canvas,data):
     # draw in canvas
-    drawCircleRing(canvas,data.width/2,data.height/2,10,30)
+    drawCircleRing(canvas,data.width/2,data.height/2,10,30,0.5)
     drawCircleRing(canvas,data.width/2,data.height/2,30,70)
     drawCircleRing(canvas,data.width/2,data.height/2,70,80)
+    drawCircleRingOfCircles(canvas,data.width/2,data.height/2,80,100)
     return
     x = data.width/2
     y = data.height/2
