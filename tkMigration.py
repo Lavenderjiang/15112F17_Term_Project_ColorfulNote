@@ -177,6 +177,7 @@ def testFreqToY():
 
 def init(data):
     # load data.xyz as appropriate
+    data.mode = "home"
     data.freq = 0
     data.pitch = 0
     data.stren = 0
@@ -196,17 +197,36 @@ def keyPressed(event, data):
     pass
 
 def timerFired(data):
+    if data.mode == "home": homeTimerFired(data)
+    if data.mode == "analysis": analysisTimerFired(data)
+
+
+def analysisTimerFired(data):
     stream = data.stream
     rawData = stream.read(CHUNK,exception_on_overflow = False)
     data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)
 
-def redrawAll(canvas, data):
+
+def homeTimerFired(data):
+    pass
+
+def redrawAll(canvas,data):
+    if data.mode == "home": homeRedrawAll(canvas,data)
+    if data.mode == "analysis": analysisRedrawAll(canvas,data)
+
+def analysisRedrawAll(canvas, data):
     # draw in canvas
     x = data.width/2
     y = freqToCanvasY(data.height,data.freq)
     print("y",y)
     r = convertToArea(data.stren)
     canvas.create_oval(x-r,y-r,x+r,y+r, fill="purple", width=0)
+
+def homeRedrawAll(canvas,data):
+    canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
+    logo = PhotoImage(file='pic/logo.png')
+    canvas.create_image(data.width/2, data.height/2, image=logo)
+
 ####################################
 # use the run function as-is
 ####################################
@@ -267,4 +287,4 @@ def run(width=300, height=300):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-run(600, 600)
+#run(600, 600)
