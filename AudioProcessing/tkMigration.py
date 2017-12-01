@@ -15,6 +15,7 @@ from tkinter import *
 import struct
 import numpy as np
 from math import log2
+import math
 import decimal
 from random import uniform #generate random float
 from random import randint
@@ -513,7 +514,6 @@ def testFreqToColor():
 
 def cyclePitchAnalysis(notes):
     '''
-
     Determine the color from the overall pitch and density from changes in notes.
 
     @param pitches: five notes in the analysis cycle, written in English notation
@@ -522,13 +522,61 @@ def cyclePitchAnalysis(notes):
 
     pass
 
-def drawCircleRing(canvas,innerR,outerR):
+def solveAngle(a,b,c):
+    '''return the radian angle C corresponding the triangle sidelength c'''
+    #c**2 = a**2 + b**2 + 2*a*b*cos(c)
+    cosC = ( c**2 - b**2 - a**2 ) / (-2*a*b)
+    angle = math.acos(cosC)
+    return angle
+
+def radianToDegree(angle):
+    return roundHalfUp( 360*angle/(2*math.pi) )
+
+def testSolveAngle():  
+    assert(solveAngle(3,4,5)==math.pi/2)
+    assert(radianToDegree(solveAngle(1,1,1))==60)
+    assert(radianToDegree(solveAngle(math.sqrt(3),2,1))==30)
+    print("passed!")
+
+def polarToCartesian(r,angle):
+    x = r * math.cos(angle)
+    y = r * math.sin(angle)
+    return x,y
+
+def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR):
+    '''
+
+    '''
     r = (outerR - innerR) / 2
-    
+    midR = (outerR + innerR) / 2
+    halfAngle = solveAngle(midR,midR,r)
+    print(radianToDegree(halfAngle))
+    fullAngle = 2 * halfAngle
+
+    totalSpaceAngle = 2*math.pi % fullAngle
+    totalCircle = int(2*math.pi // fullAngle)
+    unitSpaceAngle = totalSpaceAngle/totalCircle
+    #print("numCirc",totalCircle)
+    #print("space",radianToDegree(unitSpaceAngle))
 
 
-def createRedrawAll(canvas, data):
+    startAngle = 0
+    for i in range(totalCircle):
+        #print("drawing!")
+        angle = startAngle + i * (unitSpaceAngle + fullAngle)
+        cx,cy = polarToCartesian(midR,angle)
+        cx += zeroX
+        cy += zeroY
+        #print(cx-r,cy-r,cx+r,cy+r)
+        canvas.create_oval(cx-r,cy-r,cx+r,cy+r)
+
+
+def createRedrawAll(canvas,data):
     # draw in canvas
+    drawCircleRing(canvas,data.width/2,data.height/2,10,30)
+    drawCircleRing(canvas,data.width/2,data.height/2,30,70)
+    drawCircleRing(canvas,data.width/2,data.height/2,70,80)
+    return
     x = data.width/2
     y = data.height/2
     if data.firstCircle == False: return
