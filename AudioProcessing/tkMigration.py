@@ -141,7 +141,7 @@ def arrayGen(start,stop,steps):
     return res
 
 def testArrayGen():
-    #print(arrayGen(0,800,1024))
+    print(arrayGen(0,800,1024))
     print(arrayGen(0,800,2048))
 
 def rawAnalysis(data,rawData):
@@ -150,15 +150,10 @@ def rawAnalysis(data,rawData):
         #slice to get ride of conjugate and rescale
     y_scaled = np.abs(y_fft[:CHUNK]) * 2 / (128*CHUNK)
     y_final = y_scaled[20:]
-    #print(y_final)
-    #print("lenYFINAL",len(y_final))
-    #print("TYPEy",type(y_final))
-    #print(y_final)
+
     maxAmp = max(y_final)
     maxIndex = np.where(y_final==maxAmp)
-    #print(maxIndex)
-    #x_fft
-    #freqs = np.arange(0, 2 * CHUNK, 2)
+ 
     line_fft = data.line_fft
     freqs =line_fft.get_xdata()
 
@@ -182,9 +177,6 @@ def testFreqToY():
     print(freqToCanvasY(400,400)) #200
     print(freqToCanvasY(400,700)) #50
 
-
-
-
 class button(object):
     ''' 
     Class for switch-mode button.
@@ -196,6 +188,9 @@ class button(object):
 
     Note:
         Button size can be changed by tweaking xs and yxRatio.
+        When clicked, the system time is reset.
+    
+    Usage:
         To activate button, call with bindButton().
     '''
     def __init__(self,x,y,mode,display="button"):
@@ -220,17 +215,15 @@ class button(object):
         canvas.create_text(self.cx,self.cy,text=self.text)
 
     def onclick(self,data):
+        #switch mode and reset time
         if data.mouseX > self.minx and data.mouseX < self.maxx \
         and data.mouseY > self.miny and data.mouseY < self.maxy:
-            data.mode = self.mode
-            data.curTime = 0
+            data.mode = self.mode 
+            data.curTime = 0 
 
 def bindButton(button,data,canvas):
     button.draw(canvas)
     button.onclick(data)
-
-def freqToColor(freq):
-    pass
 
 def convertToInc(stren):
     standard = {"low":5,"medium":10,"high":15,"crazy":20}
@@ -307,9 +300,6 @@ def init(data):
 
     class Struct(object): pass
     data.anaCycle = Struct()
-
-
-
 
 def mousePressed(event, data):
     # use event.x and event.y
@@ -397,6 +387,7 @@ def createTimerFired(data):
         if avgStren > InputThreshold:
             data.ringCount += 1
             calcRingInfo(data)
+    
     data.curTime += 1 
 
 def rgbToHex(rgb):
@@ -419,7 +410,106 @@ def testRgbToHex():
 
 def halfStepsBetween(a,b):
     '''Return the number of halfSteps between Two Notes'''
+    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#","A", "A#", "B"]
+    halfStepsA = notes.index(a[:-1]) + (12* (int(a[-1])-1) )
+    halfStepsB = notes.index(b[:-1]) + (12* (int(b[-1])-1) )
+    return halfStepsA-halfStepsB
 
+def testHalfStepsBetween():
+    assert(halfStepsBetween("F1","C1") == 5)
+    assert(halfStepsBetween("G4","C1") == 43)
+    assert(halfStepsBetween("G4","F#4") == 1)
+    assert(halfStepsBetween("F#4","G4") == -1)
+
+def changesInHalfStepsToIntensity(n):
+    pass
+
+
+def freqToColour(f):
+    '''
+    @param f: frequency of soundwave in Hz
+    @var wl: wavelength of light wave in nm
+    @return: rgb of the corresponding color
+
+    Note:
+        1) Method for mapping soundwave to light wave taken from Flutopedia.
+           Link: http://www.flutopedia.com/sound_color.htm
+        2) Algorithm for converting wavelength to color comes from StackOverflow User Tarc.
+           Link: https://stackoverflow.com/questions/1472514/convert-light-frequency-to-rgb
+        3) Frequency below 262Hz (Middle C) is mapped to black.
+    '''
+    scale = 2**40
+    #special case
+    if f < 262: return (0, 0, 0)
+    if f < 350: scale = 2**41
+
+    # wavelength = speedOfLight / frequency
+    f = f * scale
+    c = 3 * (10**8)
+    wl = int(c / f * 10**9)
+    
+    #violet
+    if wl >= 380 and wl < 440:
+        r = abs(wl - 440.) / (440. - 350.)
+        g = 0.0
+        b = 1.0
+   
+    #blue
+    elif wl >= 440 and wl < 490:
+        r = 0.0
+        g = (wl - 440.) / (490. - 440.)
+        b = 1.0
+    
+    # bluish green
+    elif wl >= 490 and wl < 510:
+        r = 0.0
+        g = 1.0
+        b = abs(wl - 510.) / (510. - 490.)
+
+    #redish green
+    elif wl >= 510 and wl < 580:
+        r = (wl - 510.) / (580. - 510.)
+        g = 1.0
+        b = 0.0
+    
+    #orange
+    elif wl >= 580 and wl < 645:
+        r = 1.0
+        g = abs(wl - 645.) / (645. - 580.)
+        b = 0.0
+
+    #red
+    elif wl >= 645 and wl <= 780:
+        r = 1.0
+        g = 0.0
+        b = 0.0
+    
+    #black
+    else:
+        r = 0.0
+        g = 0.0
+        b = 0.0
+
+    # intensity correction
+    # really violet
+    if wl >= 380 and wl < 420: 
+        factor = 0.3 + 0.7*(wl - 350) / (420 - 350)
+    # regular blue to red
+    elif wl >= 420 and wl <= 700:
+        factor = 1.0
+    #really red
+    elif wl > 700 and wl <= 780:
+        factor = 0.3 + 0.7*(780 - wl) / (780 - 700)
+    else:
+        factor = 0.0
+    factor *= 255
+
+    return ( int(factor*r), int(factor*g), int(factor*b) )
+
+def testFreqToColor():
+    assert(freqToColour(440)==(255, 98, 0)) #A4 --> orange
+    assert(freqToColour(666)==(78, 0, 226)) #E5 --> purple
+    assert(freqToColour(340)==(89, 0, 206)) #F4 --> different shade of purple
 
 def cyclePitchAnalysis(notes):
     '''
@@ -432,6 +522,9 @@ def cyclePitchAnalysis(notes):
 
     pass
 
+def drawCircleRing(canvas,innerR,outerR):
+    r = (outerR - innerR) / 2
+    
 
 
 def createRedrawAll(canvas, data):
