@@ -298,6 +298,9 @@ def init(data):
     data.radii=[]
     data.firstCircle = False
     data.lastRadius = 0
+    data.colors = []
+
+    data.rings=[]
 
     class Struct(object): pass
     data.anaCycle = Struct()
@@ -314,10 +317,10 @@ def keyPressed(event, data):
     if data.mode == "home": homeKeyPressed(event,data)
     if data.mode == "analysis": analysisKeyPressed(event,data)
 
-def timerFired(data):
+def timerFired(canvas,data):
     if data.mode == "home": homeTimerFired(data)
     if data.mode == "analysis": analysisTimerFired(data)
-    if data.mode == "create": createTimerFired(data)
+    if data.mode == "create": createTimerFired(canvas,data)
 
 
 def redrawAll(canvas,data):
@@ -363,7 +366,7 @@ def homeRedrawAll(canvas,data):
 def avg(l):
     return sum(l)/len(l)
 
-def createTimerFired(data):
+def createTimerFired(canvas,data):
     '''
     Update the drawing data for ring geometric art. In each analysis cycle, one
     ring is drawn. Its spacing with the previous ring is decided by its stren. 
@@ -379,6 +382,15 @@ def createTimerFired(data):
     stream = data.stream
     rawData = stream.read(CHUNK,exception_on_overflow = False)
     data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)
+
+    if data.curTime == 1:
+        wave1 = wavyRing(canvas,data.width/2,data.height/2,100,130,["blue","blue",0,"yellow"])
+        wave2 = wavyRing(canvas,data.width/2,data.height/2,80,100,["red","red",0,"black"])
+        data.rings.append(wave1)
+        data.rings.append(wave2)
+
+    for ring in data.rings:
+        ring.angle += math.pi/6
 
     #do not draw ring for backgrond noise
     updateAnaCycle(data)
@@ -524,10 +536,20 @@ def cyclePitchAnalysis(notes):
 
 def solveAngle(a,b,c):
     '''return the radian angle C corresponding the triangle sidelength c'''
-    #c**2 = a**2 + b**2 + 2*a*b*cos(c)
+    #c**2 = a**2 + b**2 - 2*a*b*cos(C)
     cosC = ( c**2 - b**2 - a**2 ) / (-2*a*b)
     angle = math.acos(cosC)
     return angle
+
+def solveLength(a,b,C):
+    cSqaure = a**2 + b**2 - 2*a*b*math.cos(C)
+    return math.sqrt(cSqaure)
+
+def testSolveLength():
+    print( solveLength(10,10,degreeToRadian(23)) )
+
+def degreeToRadian(angle):
+    return angle/360 * (2*math.pi)
 
 def radianToDegree(angle):
     return roundHalfUp( 360*angle/(2*math.pi) )
@@ -543,7 +565,7 @@ def polarToCartesian(r,angle):
     y = r * math.sin(angle)
     return x,y
 
-def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,spacing=0):
+def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",spacing=0):
     '''
 
     Given the innerR and outerR of a ring, draw a ring made of circles on Canvas.
@@ -565,14 +587,14 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,spacing=0):
     angleWithSpace = fullAngle + spacing * fullAngle
 
 
-    #totalFillAngle = 2*math.pi % fullAngle
     totalCircle = int( (2*math.pi) // angleWithSpace)
     totalFillAngle = (2*math.pi) - totalCircle * angleWithSpace
 
     #totalCircle = int( (2*math.pi - spacing*fullAngle*totalCircle) // fullAngle)
     unitFillAngle = totalFillAngle/totalCircle 
 
-
+    
+    canvas.create_oval(zeroX-outerR,zeroY-outerR,zeroX+outerR,zeroY+outerR,fill=bgColor)
     startAngle = 0
     for i in range(totalCircle):
         angle = startAngle + i * (unitFillAngle + angleWithSpace)
@@ -580,10 +602,10 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,spacing=0):
         #coordinate offset for different center
         cx += zeroX
         cy += zeroY
-        #print(cx-r,cy-r,cx+r,cy+r)
-        canvas.create_oval(cx-r,cy-r,cx+r,cy+r)
+        canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color)
 
-def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,spacing=0.7):
+def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.7):
+    innerColor, midColor, outerColor, bgColor = colours[0],colours[1],colours[2],colours[3]
     r = (outerR - innerR) / 2
     midR = (outerR + innerR) / 2
     halfAngle = solveAngle(midR,midR,r)
@@ -599,15 +621,54 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,spacing=0.7):
     #totalCircle = int( (2*math.pi - spacing*fullAngle*totalCircle) // fullAngle)
     unitFillAngle = totalFillAngle/totalCircle 
 
+    #startAngle = 0
 
-    startAngle = 0
+    overlap = 0.5
+    dressingR = solveLength(midR, midR, unitFillAngle + angleWithSpace)/2
+    dressingR = dressingR * (1+overlap)
+    toppingRatio = 0.8
+    toppingR = dressingR * toppingRatio
+    toppingColor = "orange"
+
     for i in range(totalCircle):
         angle = startAngle + i * (unitFillAngle + angleWithSpace)
         cx,cy = polarToCartesian(midR,angle)
         cx += zeroX
         cy += zeroY
         #coordinate offset for different center
-        drawCircleRing(canvas,cx,cy,r/3,r)
+
+        #dressingR = solveLength(midR, midR, unitFillAngle + angleWithSpace)
+
+        #dR = solveLength(midR, midR, spacing * fullAngle + unitFillAngle)
+        #print("newR",dressingR)
+        #if i <1:
+            #print("center",cx,cy)
+            #print("fillAngle",radianToDegree(unitFillAngle + angleWithSpace))
+        canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=bgColor)
+        canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=toppingColor)
+
+        drawCircleRing(canvas,cx,cy,r/3,r,innerColor)
+
+
+
+
+class wavyRing(object):
+    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
+        self.canvas = canvas
+        self.zeroX = zeroX
+        self.zeroY = zeroY
+        self.innerR = innerR
+        self.outerR = outerR
+        self.unitR = (outerR - innerR)/4
+        self.colors = colors
+        self.angle = startAngle
+
+    def draw(self):
+        drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
+                                self.innerR,self.innerR + 2*self.unitR,
+                                self.colors,self.angle)
+
+
 
 class colorfulBeads(object):
     '''
@@ -621,21 +682,28 @@ class colorfulBeads(object):
         self.outerR = outerR
 
     def draw(self):
-        drawCircleRing(self.canvas,self.zeroX,self.zeroY,self.innerR,self.outerR)
+        drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,self.innerR,self.outerR)
 
-
-class wavyRing(object): pass
 
 class pureRing(object): pass
 
 
+
+
 def createRedrawAll(canvas,data):
     # draw in canvas
-    drawCircleRing(canvas,data.width/2,data.height/2,10,30,0.5)
-    drawCircleRing(canvas,data.width/2,data.height/2,30,70)
-    drawCircleRing(canvas,data.width/2,data.height/2,70,80)
-    drawCircleRingOfCircles(canvas,data.width/2,data.height/2,80,100)
-    return
+    
+    
+    #drawCircleRingOfCircles(canvas,data.width/2,data.height/2,80,100,["red","red",0,"black"])
+    #drawCircleRing(canvas,data.width/2,data.height/2,70,80,"blue")
+    #wave1.angle += math.pi/2
+    #print(wave1.angle,"DEGREE")
+    for ring in data.rings:
+        ring.draw()
+    #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"violet")
+    #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"yellow")
+    #drawCircleRing(canvas,data.width/2,data.height/2,10,30,"green")
+    return 
     x = data.width/2
     y = data.height/2
     if data.firstCircle == False: return
@@ -709,7 +777,7 @@ def run(width=1000, height=800):
         redrawAllWrapper(canvas, data)
 
     def timerFiredWrapper(canvas, data):
-        timerFired(data)
+        timerFired(canvas, data)
         redrawAllWrapper(canvas, data)
         # pause, then call timerFired again
         canvas.after(data.timerDelay, timerFiredWrapper, canvas, data)
