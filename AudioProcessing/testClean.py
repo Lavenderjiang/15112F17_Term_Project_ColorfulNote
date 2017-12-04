@@ -6,6 +6,7 @@
 ############################### Imports ########################################
 ################################################################################
 import drawHelper
+import musicHelper
 import pyaudio
 import matplotlib
 matplotlib.use('TkAgg')
@@ -38,7 +39,6 @@ CHANNELS = 1 #built-in microphone is monotone
 RATE = 16000
 
 InputThreshold = 10
-
 
 ################################################################################
 ############################### Helpers ########################################
@@ -227,39 +227,30 @@ def bindButton(button,data,canvas):
     button.draw(canvas)
     button.onclick(data)
 
-def convertToInc(stren):
-    standard = {"low":5,"medium":10,"high":15,"crazy":20}
-    if stren < 30: key = "low"
-    elif stren < 50: key = "medium"
-    elif stren < 60: key = "high"
-    else: key = "crazy"
-    return standard[key] 
 
-def testConvertToInc():
-    assert(convertToInc(40)==10)
-    assert(convertToInc(65)==20)
-    print("passed!")
 
-def calcRingInfo(data):
-    '''
-    Calculate the radius, pattern and color of the ring of current analysis cycle.
+# def calcRingInfo(data):
+#     '''
+#     Calculate the radius, pattern and color of the ring of current analysis cycle.
+#     Update the results to data.
 
-    Note:
-        Radius are incremented sequentially.
-    '''
-    print("freqs",data.anaCycle.freq)
-    print("pitches",data.anaCycle.pitch)
-    print("***********************")
-    timeSpan, freq, stren = data.curTime, data.freq, avg(data.anaCycle.stren)
-    incR = convertToArea(stren)
-    print("data.radii",data.radii)
-    if data.ringCount == 1:
-        data.firstCircle = incR
-        data.lastRadius = incR
-    else:
-        newR = data.lastRadius+incR
-        data.radii.append(newR)
-        data.lastRadius = newR
+#     Note:
+#         Radius are incremented sequentially.
+#     '''
+#     print("freqs",data.anaCycle.freq)
+#     print("pitches",data.anaCycle.pitch)
+#     print("stren",data.anaCycle.stren)
+#     print("***********************")
+#     timeSpan, freq, stren = data.curTime, data.freq, avg(data.anaCycle.stren)
+#     incR = convertToArea(stren)
+#     print("data.radii",data.radii)
+#     if data.ringCount == 1:
+#         data.firstCircle = incR
+#         data.lastRadius = incR
+#     else:
+#         newR = data.lastRadius+incR
+#         data.radii.append(newR)
+#         data.lastRadius = newR
 
 def updateAnaCycle(data):
     '''
@@ -277,6 +268,66 @@ def updateAnaCycle(data):
         #print(data.anaCycle.pitch,data.anaCycle.stren)
 
 ################################################################################
+############################### Ring Class #####################################
+################################################################################
+class firstCircle(object):
+    def __init__(self,canvas,cx,cy,color,radius):
+        self.canvas=canvas
+        self.color = color
+        self.cx = cx
+        self.cy = cy
+        self.r = radius
+        self.angle = 0
+
+    def draw(self):
+        cx = self.cx
+        cy = self.cy
+        r=self.r
+        self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
+
+
+class musicRing(object):
+    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
+        self.canvas = canvas
+        self.zeroX = zeroX
+        self.zeroY = zeroY
+        self.innerR = innerR
+        self.outerR = outerR
+        self.unitR = (outerR - innerR)/4
+        self.colors = colors
+        self.angle = startAngle
+
+    def scale(self,factor):
+        '''change inner and outerR'''
+        pass
+
+    def translate(self,coord):
+        '''move center'''
+        pass
+
+class wavyRing(musicRing):
+
+    def draw(self):
+        drawHelper.drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
+                                self.innerR,self.innerR + 2*self.unitR,
+                                self.colors,self.angle)
+
+class colorfulBeads(musicRing):
+    '''
+    Has most pitch changes in an analysis cycle
+    '''
+    def draw(self):
+        drawHelper.drawColorfulBeads(self.canvas,self.zeroX,self.zeroY,
+                          self.innerR,self.outerR,self.colors,self.angle)
+
+
+class pureRing(musicRing):
+
+    def draw(self):
+        drawHelper.drawPureRing(self.canvas,self.zeroX,self.zeroY,
+                     self.innerR,self.outerR,self.colors,self.angle)
+
+################################################################################
 ############################### Tk Func ########################################
 ################################################################################
 
@@ -290,6 +341,7 @@ def init(data):
     data.pitch = 0
     data.stren = 0
     data.pOffset = 157
+    ########## matplotlib data ######## 
     fig = plt.figure()
     ax = plt.subplot()
     x_fft = np.linspace(0,RATE,CHUNK)
@@ -298,10 +350,15 @@ def init(data):
     ####################only for createMode###########
     data.radii=[]
     data.firstCircle = False
-    data.lastRadius = 0
+    data.oldR = 0
     data.colors = []
 
     data.rings=[]
+    data.ringType=""
+    data.incR=0
+    data.diffList=[]
+
+    data.addFlag=False
     data.bgColor="black"
 
     class Struct(object): pass
@@ -343,86 +400,7 @@ def homeMousePressed(event,data):
     data.mouseX = event.x
     data.mouseY = event.y
 
-def freqToColour(f):
-    '''
-    @param f: frequency of soundwave in Hz
-    @var wl: wavelength of light wave in nm
-    @return: rgb of the corresponding color
 
-    Note:
-        1) Method for mapping soundwave to light wave taken from Flutopedia.
-           Link: http://www.flutopedia.com/sound_color.htm
-        2) Algorithm for converting wavelength to color comes from StackOverflow User Tarc.
-           Link: https://stackoverflow.com/questions/1472514/convert-light-frequency-to-rgb
-        3) Frequency below 262Hz (Middle C) is mapped to black.
-    '''
-    scale = 2**40
-    #special case
-    if f < 262: return (0, 0, 0)
-    if f < 350: scale = 2**41
-
-    # wavelength = speedOfLight / frequency
-    f = f * scale
-    c = 3 * (10**8)
-    wl = int(c / f * 10**9)
-    
-    #violet
-    if wl >= 380 and wl < 440:
-        r = abs(wl - 440.) / (440. - 350.)
-        g = 0.0
-        b = 1.0
-   
-    #blue
-    elif wl >= 440 and wl < 490:
-        r = 0.0
-        g = (wl - 440.) / (490. - 440.)
-        b = 1.0
-    
-    # bluish green
-    elif wl >= 490 and wl < 510:
-        r = 0.0
-        g = 1.0
-        b = abs(wl - 510.) / (510. - 490.)
-
-    #redish green
-    elif wl >= 510 and wl < 580:
-        r = (wl - 510.) / (580. - 510.)
-        g = 1.0
-        b = 0.0
-    
-    #orange
-    elif wl >= 580 and wl < 645:
-        r = 1.0
-        g = abs(wl - 645.) / (645. - 580.)
-        b = 0.0
-
-    #red
-    elif wl >= 645 and wl <= 780:
-        r = 1.0
-        g = 0.0
-        b = 0.0
-    
-    #black
-    else:
-        r = 0.0
-        g = 0.0
-        b = 0.0
-
-    # intensity correction
-    # really violet
-    if wl >= 380 and wl < 420: 
-        factor = 0.3 + 0.7*(wl - 350) / (420 - 350)
-    # regular blue to red
-    elif wl >= 420 and wl <= 700:
-        factor = 1.0
-    #really red
-    elif wl > 700 and wl <= 780:
-        factor = 0.3 + 0.7*(780 - wl) / (780 - 700)
-    else:
-        factor = 0.0
-    factor *= 255
-
-    return ( int(factor*r), int(factor*g), int(factor*b) )
 def homeKeyPressed(event, data):
     pass
 
@@ -464,13 +442,14 @@ def createTimerFired(canvas,data):
     rawData = stream.read(CHUNK,exception_on_overflow = False)
     data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)
 
-    if data.curTime == 1:
-        wave1 = wavyRing(canvas,data.width/2,data.height/2,100,130,["blue","red","violet","yellow"])
-        wave2 = wavyRing(canvas,data.width/2,data.height/2,80,100,["red","green","yellow","black"])
-        bead3 = colorfulBeads(canvas,data.width/2,data.height/2,150,200,["red","green"])
-        data.rings.append(wave1)
-        data.rings.append(wave2)
-        data.rings.append(bead3)
+    # if data.curTime == 1:
+        # wave1 = wavyRing(canvas,data.width/2,data.height/2,100,130,["blue","red","violet","yellow"])
+        # wave2 = wavyRing(canvas,data.width/2,data.height/2,80,100,["red","green","yellow","black"])
+        # bead3 = colorfulBeads(canvas,data.width/2,data.height/2,130,150,["red","green"])
+        # data.rings.append(bead3)
+        # data.rings.append(wave1)
+        # data.rings.append(wave2)
+        
 
     for ring in data.rings:
         ring.angle += math.pi/6
@@ -478,121 +457,49 @@ def createTimerFired(canvas,data):
     #do not draw ring for backgrond noise
     updateAnaCycle(data)
     if data.curTime%5 == 4:
-        info = data.anaCycle
-        avgStren = avg(info.stren)
+        print(data.anaCycle.stren)
+        avgStren = avg(data.anaCycle.stren)
+        print("avg!!!",avgStren)
         if avgStren > InputThreshold:
-            data.ringCount += 1
-            calcRingInfo(data)
+            cyclePitchAnalysis(data)
     
     data.curTime += 1 
 
-def rgbToHex(rgb):
-    '''
-    @param rgb: a tuple in the form (r,g,b)
-    @return: equivalent hex string
-    '''
-    res="#"
-    for val in rgb:
-        hexString = hex(val)
-        temp = hexString[2:]
-        if len(temp)==1:
-            temp = "0" + temp
-        res += temp
-    return res
-
-def testRgbToHex():
-    print(rgbToHex((255,0,0)))
-    print(rgbToHex((255,3,19)))
-
-def halfStepsBetween(a,b):
-    '''Return the number of halfSteps between Two Notes'''
-    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#","A", "A#", "B"]
-    halfStepsA = notes.index(a[:-1]) + (12* (int(a[-1])-1) )
-    halfStepsB = notes.index(b[:-1]) + (12* (int(b[-1])-1) )
-    return halfStepsA-halfStepsB
-
-def testHalfStepsBetween():
-    assert(halfStepsBetween("F1","C1") == 5)
-    assert(halfStepsBetween("G4","C1") == 43)
-    assert(halfStepsBetween("G4","F#4") == 1)
-    assert(halfStepsBetween("F#4","G4") == -1)
-
-def changesInHalfStepsToIntensity(n):
-    pass
-
-
-
-
-def testFreqToColor():
-    assert(freqToColour(440)==(255, 98, 0)) #A4 --> orange
-    assert(freqToColour(666)==(78, 0, 226)) #E5 --> purple
-    assert(freqToColour(340)==(89, 0, 206)) #F4 --> different shade of purple
-
-def cyclePitchAnalysis(notes):
+def cyclePitchAnalysis(data):
     '''
     Determine the color from the overall pitch and density from changes in notes.
 
     @param pitches: five notes in the analysis cycle, written in English notation
-    @return: color in hex and density 
+    @return: ringType, a list of color, and inner&outer radius
     '''
-
-    pass
-
-
-
-
-
-
-
-class musicRing(object):
-    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
-        self.canvas = canvas
-        self.zeroX = zeroX
-        self.zeroY = zeroY
-        self.innerR = innerR
-        self.outerR = outerR
-        self.unitR = (outerR - innerR)/4
-        self.colors = colors
-        self.angle = startAngle
-
-    def scale(self,factor):
-        '''change inner and outerR'''
-        pass
-
-    def translate(self,coord):
-        '''move center'''
-        pass
-
-class wavyRing(musicRing):
-
-    def draw(self):
-        drawHelper.drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
-                                self.innerR,self.innerR + 2*self.unitR,
-                                self.colors,self.angle)
-
-
-
-class colorfulBeads(musicRing):
-    '''
-    Has most pitch changes in an analysis cycle
-    '''
-    def draw(self):
-        drawHelper.drawColorfulBeads(self.canvas,self.zeroX,self.zeroY,
-                          self.innerR,self.outerR,self.colors,self.angle)
-
-
-class pureRing(musicRing):
-
-    def draw(self):
-        drawHelper.drawPureRing(self.canvas,self.zeroX,self.zeroY,
-                     self.innerR,self.outerR,self.colors,self.angle)
-
+    if len(data.rings) == 0:
+        data.ringType = "pure" #one color
+    else:
+        #update data.ringType and data.diffList
+        musicHelper.NoteListToType(data.anaCycle.pitch,data)
+    #update data.incR
+    musicHelper.strenToIncR(avg(data.anaCycle.stren),data)
+    #update data.colors
+    musicHelper.colorListGen(data)
+    #notify redrawAll
+    data.addFlag = True
 
 
 def createRedrawAll(canvas,data):
-    # draw in canvas
-    
-    
+    if data.addFlag == True:
+        zeroX,zeroY = data.width/2,data.height/2
+        innerR = data.oldR
+        outerR = data.oldR + data.incR
+        if len(data.rings)==0:
+            ring = firstCircle(canvas,zeroX,zeroY,data.colors[0],data.incR)
+            data.oldR = data.incR
+        elif data.ringType == "pure":
+            ring = pureRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "bead":
+            ring = colorfulBeads(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "wavy":
+            ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)        
+        data.rings.append(ring)
     #drawCircleRingOfCircles(canvas,data.width/2,data.height/2,80,100,["red","red",0,"black"])
     #drawCircleRing(canvas,data.width/2,data.height/2,70,80,"blue")
     #wave1.angle += math.pi/2
@@ -602,14 +509,8 @@ def createRedrawAll(canvas,data):
     #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"violet")
     #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"yellow")
     #drawCircleRing(canvas,data.width/2,data.height/2,10,30,"green")
-    return 
-    x = data.width/2
-    y = data.height/2
-    if data.firstCircle == False: return
-    innerR = data.firstCircle
-    canvas.create_oval(x-innerR,y-innerR,x+innerR,y+innerR,fill="black")
-    for r in data.radii:
-        canvas.create_oval(x-r,y-r,x+r,y+r,fill=None,width = 2)
+   
+
 
 def createMousePressed(event,data):
     pass
@@ -681,8 +582,6 @@ def run(width=1200, height=800):
         # pause, then call timerFired again
         canvas.after(data.timerDelay, timerFiredWrapper, canvas, data)
     # Set up data and call init
-    
-
 
     class Struct(object): pass
     data = Struct()
@@ -715,4 +614,4 @@ def run(width=1200, height=800):
     root.mainloop()  # blocks until window is closed
     print("bye!")
 
-#run()
+run()

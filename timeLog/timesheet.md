@@ -20,6 +20,7 @@ Convert audio data to graph
   - Chord --> color tone; Tempo --> brightness 
   - Output .png image [Done on Nov 27; Took 0.5 hour]
   - One ring at a time [Done on Nov 28; Took 1 hour]
+  - Structual migration to Tkinter [Done on Dec 1; Took 3 hour]
 
 ## webapp
 UI for the program

@@ -1,7 +1,16 @@
+#author: Lavender Jiang
+#contact: yaoj@andrew.cmu.edu
+#15112F17 Term Project
+
+################################################################################
+############################### Imports ########################################
+################################################################################
 from math import log2
 import math
 import decimal
-#########
+###############################################################################
+############################### Helpers ########################################
+################################################################################
 def solveAngle(a,b,c):
     '''return the radian angle C corresponding the triangle sidelength c'''
     #c**2 = a**2 + b**2 - 2*a*b*cos(C)
@@ -33,7 +42,10 @@ def polarToCartesian(r,angle):
     y = r * math.sin(angle)
     return x,y
 
-#######################################
+################################################################################
+############################### Drawing ########################################
+################################################################################
+
 def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startAngle=0,spacing=0):
     '''
 
@@ -82,13 +94,13 @@ def drawPureRing(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0
 
     '''
     ringCount = 2
-    innerColor, outerColor, bgColor = colours[0],colours[1],"black"
+    innerColor, bgColor = colours[0],"black"
     r = (outerR - innerR) / 2
     unitRange = r / ringCount
     toppingRatio = 0.2
 
     cx, cy = zeroX, zeroY
-    drawCircleRing(canvas,cx,cy,r+unitRange,r + 2*unitRange,outerColor,bgColor,startAngle)
+    drawCircleRing(canvas,cx,cy,r+unitRange,r + 2*unitRange,innerColor,bgColor,startAngle)
     drawCircleRing(canvas,cx,cy,r,r + unitRange,innerColor,bgColor,startAngle)
 
 def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.2):
@@ -106,8 +118,10 @@ def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spac
     toppingRatio = 0.2
 
     cx, cy = zeroX, zeroY
-    drawCircleRing(canvas,cx,cy,r+unitRange,r + 2*unitRange,outerColor,bgColor,startAngle)
-    drawCircleRing(canvas,cx,cy,r,r + unitRange,innerColor,bgColor,startAngle)
+    print("Here;s info for beads!")
+    print("innerR",innerR,"outerR",outerR)
+    drawCircleRing(canvas,cx,cy,innerR+unitRange,innerR + 2*unitRange,outerColor,bgColor,startAngle)
+    drawCircleRing(canvas,cx,cy,innerR,innerR + unitRange,innerColor,bgColor,startAngle)
 
 
 def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.7):
@@ -131,6 +145,8 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=
     innerColor, midColor, outerColor, bgColor = colours[0],colours[1],colours[2],colours[3]
     r = (outerR - innerR) / 2
     midR = (outerR + innerR) / 2
+    print("Here's wavy R info!")
+    print("r of circle",r,"r of ring size",midR)
     halfAngle = solveAngle(midR,midR,r)
     fullAngle = 2 * halfAngle
     angleWithSpace = fullAngle + spacing * fullAngle
