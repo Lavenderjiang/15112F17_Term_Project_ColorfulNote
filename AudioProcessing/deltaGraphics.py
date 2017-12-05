@@ -117,6 +117,7 @@ def run(width=300, height=300):
 
     # create the root and the canvas (Note Change: do this BEFORE calling init!)
     root = Tk()
+    #root.attributes('-fullscreen', True)
 
     init(data)
     canvas = Canvas(root, width=data.width, height=data.height)

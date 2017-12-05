@@ -24,6 +24,7 @@ from random import randint
 from ast import literal_eval
 from PIL import Image
 from PIL import ImageGrab
+import webbrowser
 
 fft = np.fft.fft
 np.set_printoptions(threshold=np.nan) #print full np array
@@ -196,10 +197,9 @@ class button(object):
     Usage:
         To activate button, call with bindButton().
     '''
-    def __init__(self,x,y,mode,display="button"):
-        xs = 40
-        yxRatio = 4
-        ys = xs/yxRatio
+    def __init__(self,x,y,mode,display="button",xs=40,ys =40/4):
+        self.xs = xs
+        self.ys = ys
         
         self.cx = x
         self.cy = y
@@ -210,12 +210,18 @@ class button(object):
         self.maxy = y + ys
         self.mode = mode
 
+    def reCalc(self):
+        self.minx = self.cx - self.xs
+        self.miny = self.cy - self.ys
+        self.maxx = self.cx + self.xs
+        self.maxy = self.cy + self.ys
+
     def draw(self,canvas):
-        color = "blue"
+        color = "#44d9e6"
         thickness = 2
         canvas.create_rectangle(self.minx,self.miny,self.maxx,self.maxy,
-                                fill=color,width=2)
-        canvas.create_text(self.cx,self.cy,text=self.text)
+                                fill=color,width=3)
+        canvas.create_text(self.cx,self.cy,text=self.text,font="Helvetica")
 
     def onclick(self,data):
         #switch mode and reset time
@@ -224,8 +230,24 @@ class button(object):
             data.mode = self.mode 
             data.curTime = 0 
 
-def bindButton(button,data,canvas):
-    button.draw(canvas)
+class saveButton(button):
+    def onclick(self,data):
+        if data.mouseX > self.minx and data.mouseX < self.maxx \
+        and data.mouseY > self.miny and data.mouseY < self.maxy:
+            if data.saved == True: return
+            saveImage(data.canvas,data)
+            data.saved = True
+
+class shareButton(button):
+    def onclick(self,data):
+        if data.mouseX > self.minx and data.mouseX < self.maxx \
+        and data.mouseY > self.miny and data.mouseY < self.maxy:
+            if data.shared == True: return
+            webbrowser.open("http://google.com")
+            data.shared = True
+
+def bindButton(button,data):
+    button.draw(data.canvas)
     button.onclick(data)
 
 def updateAnaCycle(data):
@@ -272,6 +294,7 @@ class musicRing(object):
         self.unitR = (outerR - innerR)/4
         self.colors = colors
         self.angle = startAngle
+        self.delete = False
 
     def scale(self,factor):
         '''change inner and outerR'''
@@ -284,6 +307,7 @@ class musicRing(object):
 class wavyRing(musicRing):
 
     def draw(self):
+        if self.delete == True: pass
         drawHelper.drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
                                 self.innerR,self.innerR + 2*self.unitR,
                                 self.colors,self.angle)
@@ -335,11 +359,30 @@ def init(data):
     data.incR=0
     data.diffList=[]
 
+    data.fullFlag = False
     data.addFlag=False
     data.bgColor="black"
     data.logo = data.image = PhotoImage(file="logo.gif")
     data.homeButton = button(data.width/4,data.height/4,"home","home")
+    data.saveButton = saveButton(data.width/4,data.height/5,"save","save")
+    
 
+    class menuParam: pass
+    data.menu = menuParam()
+    data.menu.homeButton = button(data.width/4,data.height/4,"home","home")
+    data.menu.saveButton = saveButton(data.width/4,data.height/5,"save","save")
+    data.menu.shareButton = shareButton(data.width/4,data.height/4,"share","share")
+    buttons = [data.menu.homeButton, data.menu.saveButton, data.menu.shareButton]
+    data.createMenu = sideMenu(data,0,0,data.width/6,data.height/2,"pink",[1,1,1],buttons,20)
+
+
+    data.saved = False
+    data.shared = False
+
+    #bound for the sound canvas
+    data.bound = [data.width/6, 0, data.width, data.height]
+
+    data.stop = False
 
     class Struct(object): pass
     data.anaCycle = Struct()
@@ -386,21 +429,66 @@ def homeKeyPressed(event, data):
 
 
 def homeRedrawAll(canvas,data):
-    #print("curXY!",data.mouseX,data.mouseY)
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     gap = 30
     create_button = button(data.width/2,data.height*2/3 - 2*gap,"create","Create!")
-    bindButton(create_button,data,canvas)
+    bindButton(create_button,data)
     about_button = button(data.width/2,data.height*2/3 - gap,"help","About")
-    bindButton(about_button,data,canvas)
+    bindButton(about_button,data)
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
-    bindButton(analysis_button,data,canvas)
+    bindButton(analysis_button,data)
     canvas.create_image(data.width/2, data.height/3,  image=data.image)
     
 
 ###############################################################################
 ############################### Create Mode ####################################
 ################################################################################
+class sideMenu(object):
+    '''
+    Menu object. Take in a list of button and size specification, display
+    a menu with all the buttons
+    '''
+    def __init__(self,data,x0,y0,x1,y1,colors,grid,buttons,space=0):
+        self.data = data
+        self.x0 = x0
+        self.y0 = y0
+        self.x1 = x1
+        self.y1 = y1
+        self.dy = self.y1-self.y0
+        self.grid = grid
+        self.space = space
+        self.buttons = buttons
+        self.init = True
+
+    def drawMenu(self):
+        if self.init == True:
+            grid = self.grid
+            oldY = 0
+            xSize = (self.x1 - self.x0)/2
+            cx = self.x0 + xSize
+            numSpace = len(grid) - 1
+            print(grid)
+            unitY = (self.dy - numSpace * self.space) / sum(grid)
+            for i in range(len(grid)):
+                ratio = grid[i]
+                nexY = oldY + unitY * ratio
+                ySize = (nexY - oldY)/2
+                cy = oldY + ySize
+                #change button attributes
+                print(self.buttons[i])
+                print("*******************")
+                self.buttons[i].cx = cx
+                self.buttons[i].cy = cy
+                self.buttons[i].xs = xSize
+                self.buttons[i].ys = ySize
+                self.buttons[i].reCalc()
+                print("old",oldY,"nex",nexY)
+                oldY = nexY
+        self.init = False
+        for button in self.buttons:
+            bindButton(button,self.data)
+
+
 def debugPrint(data):
     ringList = data.rings
     for ring in ringList:
@@ -463,13 +551,18 @@ def cyclePitchAnalysis(data):
 
 
 def createRedrawAll(canvas,data):
-    # b1 = button(data.width/4,data.height/4,"home","home")
-    # bindButton(b1,data,canvas)
-    
+    canvas.create_rectangle(data.width/6,0,data.width,data.height,fill=None,width=5)
     if data.addFlag == True:
-        zeroX,zeroY = data.width/2,data.height/2
+        offsetX, offsetY = data.width/6-100, -70
+        zeroX,zeroY = data.width/2 + offsetX, data.height/2 + offsetY
         innerR = data.oldR
         outerR = data.oldR + data.incR
+
+        #check if out of bound
+        if zeroX + outerR > data.width or zeroX - outerR < data.width/6 or\
+           zeroY + outerR > data.height or zeroY - outerR < 0:
+           data.fullFlag = True
+
         if len(data.rings)==0:
             ring = firstCircle(canvas,zeroX,zeroY,data.colors[0],data.incR)
             #data.oldR = data.incR
@@ -480,16 +573,29 @@ def createRedrawAll(canvas,data):
         elif data.ringType == "wavy":
             ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)        
         data.oldR = data.oldR+data.incR
-        print("old",data.oldR,"inc",data.incR)
-        print("##############################")
+        # print("old",data.oldR,"inc",data.incR)
+        # print("##############################")
         data.rings.append(ring)
         data.addFlag = False
+
+    if data.fullFlag == True:
+        data.fullFlag = False
+        scale = 0.6
+        threshold = 1.5
+        data.oldR = data.oldR * scale
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.outerR < data.rings[0].r * threshold :
+                ring.delete = True
+
 
     #reverse to avoid hiding of the previous rings
     for ring in data.rings[::-1]:
         ring.draw()
-    saveImage(canvas,data)
 
+    data.createMenu.drawMenu()
     # savename = 'yourImage'
     # ImageGrab.grab((0,0,data.width,data.height)).save(savename + '.jpg')
 def createMousePressed(event,data):
@@ -500,8 +606,11 @@ def createMousePressed(event,data):
 def saveImage(canvas,data):
     x=data.root.winfo_rootx()+canvas.winfo_x()
     y=data.root.winfo_rooty()+canvas.winfo_y()
-    x1=x+canvas.winfo_width()
-    y1=y+canvas.winfo_height()
+    # x=data.root.winfo_rootx()+canvas.winfo_x()
+    # y=data.root.winfo_rooty()+canvas.winfo_y()
+    x1=x+data.width*2
+    y1=y+data.height*2
+    #ImageGrab.grab(0,0,data.width,data.height).save("test.png")
     ImageGrab.grab().crop((x,y,x1,y1)).save("test.png")
 ################################################################################
 ############################### Help Mode ######################################
@@ -515,7 +624,7 @@ def helpRedrawAll(canvas,data):
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     canvas.create_text(data.width/2,data.height/2,text="HELP!!!!")
     b1 = button(data.width/4,data.height/4,"home","home")
-    bindButton(b1,data,canvas)
+    bindButton(b1,data)
 
 ################################################################################
 ############################# Analysis Mode ####################################
@@ -537,7 +646,7 @@ def analysisRedrawAll(canvas, data):
     canvas.create_text(data.width*2/3,data.height*3/4,text = fToNote(data.freq))
     canvas.create_text(data.width*2/3,data.height*3/4-20,text = str(data.freq))
     b1 = button(data.width/4,data.height/4,"home","home")
-    bindButton(b1,data,canvas)
+    bindButton(b1,data)
 
 def analysisMousePressed(event,data):
     pass
@@ -546,6 +655,12 @@ def analysisMousePressed(event,data):
 ################################################################################
 
 def run(width=1200, height=800):
+    def deltaDrawWrapper(canvas, data):
+        if (data.readyForDeltaDraw == True):
+            deltaDraw(canvas, data)
+            canvas.update()
+        else:
+            redrawAllWrapper(canvas, data)
 
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
@@ -589,8 +704,11 @@ def run(width=1200, height=800):
     # create the root and the canvas
     root = Tk()
     data.root=root
+    #root.attributes('-fullscreen', True)
+
     init(data)
     canvas = Canvas(root, width=data.width, height=data.height)
+    data.canvas = canvas
 
     canvas.pack()
     # set up events
