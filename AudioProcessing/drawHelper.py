@@ -94,7 +94,7 @@ def drawPureRing(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0
 
     '''
     ringCount = 2
-    innerColor, bgColor = colours[0],"black"
+    innerColor, bgColor = colours[0],"orange"
     r = (outerR - innerR) / 2
     unitRange = r / ringCount
     toppingRatio = 0.2
@@ -118,8 +118,8 @@ def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spac
     toppingRatio = 0.2
 
     cx, cy = zeroX, zeroY
-    print("Here;s info for beads!")
-    print("innerR",innerR,"outerR",outerR)
+    #print("Here;s info for beads!")
+    #print("innerR",innerR,"outerR",outerR)
     drawCircleRing(canvas,cx,cy,innerR+unitRange,innerR + 2*unitRange,outerColor,bgColor,startAngle)
     drawCircleRing(canvas,cx,cy,innerR,innerR + unitRange,innerColor,bgColor,startAngle)
 
@@ -145,8 +145,8 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=
     innerColor, midColor, outerColor, bgColor = colours[0],colours[1],colours[2],colours[3]
     r = (outerR - innerR) / 2
     midR = (outerR + innerR) / 2
-    print("Here's wavy R info!")
-    print("r of circle",r,"r of ring size",midR)
+    #print("Here's wavy R info!")
+    #print("r of circle",r,"r of ring size",midR)
     halfAngle = solveAngle(midR,midR,r)
     fullAngle = 2 * halfAngle
     angleWithSpace = fullAngle + spacing * fullAngle
@@ -172,9 +172,6 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=
         cy += zeroY
         #coordinate offset for different center
 
-        #if i <1:
-            #print("center",cx,cy)
-            #print("fillAngle",radianToDegree(unitFillAngle + angleWithSpace))
         canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=outerColor)
         canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=midColor)
 

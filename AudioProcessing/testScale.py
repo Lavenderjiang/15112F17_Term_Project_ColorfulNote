@@ -23,6 +23,7 @@ from random import uniform #generate random float
 from random import randint
 from ast import literal_eval
 from PIL import Image
+from PIL import ImageGrab
 
 fft = np.fft.fft
 np.set_printoptions(threshold=np.nan) #print full np array
@@ -60,7 +61,7 @@ def fToNote(f):
     C0 = 16.35
     notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
     halfSteps = roundHalfUp(12*log2(f/C0)) #formula taken from John D. Cook
-    octave = halfSteps/12
+    octave = abs(halfSteps/12)
     pitch = notes[halfSteps%12]
     return "%s%d"%(pitch,octave)
 
@@ -220,37 +221,13 @@ class button(object):
         #switch mode and reset time
         if data.mouseX > self.minx and data.mouseX < self.maxx \
         and data.mouseY > self.miny and data.mouseY < self.maxy:
+            print("************\nYou Clicked!\n***********")
             data.mode = self.mode 
             data.curTime = 0 
 
 def bindButton(button,data,canvas):
     button.draw(canvas)
     button.onclick(data)
-
-
-
-# def calcRingInfo(data):
-#     '''
-#     Calculate the radius, pattern and color of the ring of current analysis cycle.
-#     Update the results to data.
-
-#     Note:
-#         Radius are incremented sequentially.
-#     '''
-#     print("freqs",data.anaCycle.freq)
-#     print("pitches",data.anaCycle.pitch)
-#     print("stren",data.anaCycle.stren)
-#     print("***********************")
-#     timeSpan, freq, stren = data.curTime, data.freq, avg(data.anaCycle.stren)
-#     incR = convertToArea(stren)
-#     print("data.radii",data.radii)
-#     if data.ringCount == 1:
-#         data.firstCircle = incR
-#         data.lastRadius = incR
-#     else:
-#         newR = data.lastRadius+incR
-#         data.radii.append(newR)
-#         data.lastRadius = newR
 
 def updateAnaCycle(data):
     '''
@@ -332,7 +309,6 @@ class pureRing(musicRing):
 ################################################################################
 
 def init(data):
-    data.logo = PhotoImage(file="logo.gif")
     data.curTime = 0
     data.ringCount = 0
     data.mode = "home"
@@ -342,6 +318,7 @@ def init(data):
     data.pitch = 0
     data.stren = 0
     data.pOffset = 157
+    #data.logo=[]
     ########## matplotlib data ######## 
     fig = plt.figure()
     ax = plt.subplot()
@@ -361,9 +338,12 @@ def init(data):
 
     data.addFlag=False
     data.bgColor="black"
+    data.logo = data.image = PhotoImage(file="logo.gif")
 
     class Struct(object): pass
     data.anaCycle = Struct()
+    data.homeButton = button(data.width/4,data.height/4,"home","home")
+    
 
 def mousePressed(event, data):
     # use event.x and event.y
@@ -405,6 +385,7 @@ def homeMousePressed(event,data):
 def homeKeyPressed(event, data):
     pass
 
+
 def homeRedrawAll(canvas,data):
     #print("curXY!",data.mouseX,data.mouseY)
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
@@ -415,9 +396,16 @@ def homeRedrawAll(canvas,data):
     bindButton(about_button,data,canvas)
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
     bindButton(analysis_button,data,canvas)
+    canvas.create_image(data.width/2, data.height/3,  image=data.image)
     
     #b3 = button(data.width/2,data.height*2/3 - gap*2)
-    canvas.create_image(data.width/2,data.height/3, image=data.logo)
+
+    
+
+    #logo = PhotoImage(file="logo.gif")
+    #canvas.create_image(50,100,image=data.logo,anchor=NW)
+    #canvas.create_image(data.width/2,data.height/2,image=logo)
+    #canvas.create_image(data.width/2,data.height/2, image=logo)
 
 ###############################################################################
 ############################### Create Mode ####################################
@@ -484,6 +472,11 @@ def cyclePitchAnalysis(data):
 
 
 def createRedrawAll(canvas,data):
+    # b1 = button(data.width/4,data.height/4,"home","home")
+    # bindButton(b1,data,canvas)
+    bindButton(data.homeButton,data,canvas)
+
+
     if data.addFlag == True:
         zeroX,zeroY = data.width/2,data.height/2
         innerR = data.oldR
@@ -506,15 +499,12 @@ def createRedrawAll(canvas,data):
     #reverse to avoid hiding of the previous rings
     for ring in data.rings[::-1]:
         ring.draw()
-    #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"violet")
-    #drawCircleRing(canvas,data.width/2,data.height/2,30,70,"yellow")
-    #drawCircleRing(canvas,data.width/2,data.height/2,10,30,"green")
-   
 
-
+    # savename = 'yourImage'
+    # ImageGrab.grab((0,0,data.width,data.height)).save(savename + '.jpg')
 def createMousePressed(event,data):
-    pass
-
+    data.mouseX = event.x
+    data.mouseY = event.y
 
 ################################################################################
 ############################### Help Mode ######################################
@@ -528,8 +518,9 @@ def helpMousePressed(event,data):
 def helpRedrawAll(canvas,data):
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     canvas.create_text(data.width/2,data.height/2,text="HELP!!!!")
-    b1 = button(data.width/4,data.height/4,"home")
-    bindButton(b1,data,canvas)
+    bindButton(data.homeButton,data,canvas)
+    # b1 = button(data.width/4,data.height/4,"home","home")
+    # bindButton(b1,data,canvas)
 
 
 
@@ -553,20 +544,24 @@ def analysisRedrawAll(canvas, data):
     canvas.create_oval(x-r,y-r,x+r,y+r, fill="purple", width=0)
     canvas.create_text(data.width*2/3,data.height*3/4,text = fToNote(data.freq))
     canvas.create_text(data.width*2/3,data.height*3/4-20,text = str(data.freq))
+    b1 = button(data.width/4,data.height/4,"home","home")
+    bindButton(b1,data,canvas)
 
-
-
+def analysisMousePressed(event,data):
+    pass
 ################################################################################
 ############################# Main Function ####################################
 ################################################################################
 
 def run(width=1200, height=800):
+
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
         canvas.create_rectangle(0, 0, data.width, data.height,
                                 fill='white', width=0)
         redrawAll(canvas, data)
-        canvas.update()    
+        canvas.update() 
+        data.readyForDeltaDraw = True   
 
     def mousePressedWrapper(event, canvas, data):
         mousePressed(event, data)
@@ -588,10 +583,9 @@ def run(width=1200, height=800):
     data.width = width
     data.height = height
     data.timerDelay = 100 # milliseconds
-    
-    #init(data)
-    
+    data.readyForDeltaDraw = False
 
+    
 
 
     p = pyaudio.PyAudio()
@@ -606,9 +600,10 @@ def run(width=1200, height=800):
     # create the root and the canvas
     root = Tk()
     init(data)
-    
-
     canvas = Canvas(root, width=data.width, height=data.height)
+
+
+
     canvas.pack()
     # set up events
     root.bind("<Button-1>", lambda event:
@@ -618,6 +613,7 @@ def run(width=1200, height=800):
     timerFiredWrapper(canvas, data)
     # and launch the app
     root.mainloop()  # blocks until window is closed
+    
     print("bye!")
 
 run()

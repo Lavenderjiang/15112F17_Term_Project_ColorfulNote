@@ -62,7 +62,7 @@ def freqToColour(f):
     '''
     scale = 2**40
     #special case
-    if f < 262: return (0, 0, 0)
+    if f < 262: return (230,230,250)
     if f < 350: scale = 2**41
 
     # wavelength = speedOfLight / frequency
@@ -214,9 +214,3 @@ def testConvertToInc():
     assert(convertToInc(40)==10)
     assert(convertToInc(65)==20)
     print("passed!")
-
-
-
-
-
-
