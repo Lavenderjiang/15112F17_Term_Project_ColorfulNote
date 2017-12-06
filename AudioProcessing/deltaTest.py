@@ -5,8 +5,8 @@
 ################################################################################
 ############################### Imports ########################################
 ################################################################################
-import drawHelper
-import musicHelper
+from drawHelper import *
+from musicHelper import *
 import pyaudio
 import matplotlib
 matplotlib.use('TkAgg')
@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from tkinter import *
+from GUIclasses import *
 import struct
 import numpy as np
 from math import log2
@@ -41,7 +42,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1 #built-in microphone is monotone
 RATE = 16000
 
-InputThreshold = 10
+InputThreshold = 6
 
 ################################################################################
 ############################### Helpers ########################################
@@ -52,6 +53,15 @@ def roundHalfUp(d):
     # Round to nearest with ties going away from zero.
     rounding = decimal.ROUND_HALF_UP
     return int(decimal.Decimal(d).to_integral_value(rounding=rounding))
+
+def debugPrint(data):
+    ringList = data.rings
+    for ring in ringList:
+        if type(ring)==firstCircle: continue
+        print(ring.innerR,ring.outerR,type(ring).__name__)
+
+def avg(l):
+    return sum(l)/len(l)
 
 def fToNote(f):
     '''
@@ -107,7 +117,17 @@ def convertToArea(stren):
     elif stren<60: res = randint(50,100)
     else: res = randint(100,150)
     return res
+
+def saveImage(canvas,data,dirPath):
+    x=data.root.winfo_rootx()+canvas.winfo_x()
+    y=data.root.winfo_rooty()+canvas.winfo_y()
+
+    x1=x+data.width*2
+    y1=y+data.height*2
     
+    path = os.path.join(dirPath,"new.png")
+    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save(path)
+
 def testAreaConversion():
     print(convertToArea(42.7)) #('low',5)
     print(convertToArea(68.9)) #('high', 20)
@@ -182,86 +202,26 @@ def testFreqToY():
     print(freqToCanvasY(400,400)) #200
     print(freqToCanvasY(400,700)) #50
 
-class button(object):
-    ''' 
-    Class for switch-mode button.
 
-    @param x: horizontal coord of the center of the button
-    @param y: vertical coord of the center of the button (0 on top)
-    @param mode: string of the name of the mode to switch to
-    @param display: the string to display on button
-
-    Note:
-        Button size can be changed by tweaking xs and yxRatio.
-        When clicked, the system time is reset.
-    
-    Usage:
-        To activate button, call with bindButton().
+def cyclePitchAnalysis(data):
     '''
-    def __init__(self,x,y,mode,display="button",xs=40,ys =40/4):
-        self.xs = xs
-        self.ys = ys
-        
-        self.cx = x
-        self.cy = y
-        self.text = display
-        self.minx = x - xs
-        self.miny = y - ys
-        self.maxx = x + xs
-        self.maxy = y + ys
-        self.mode = mode
+    Determine the color from the overall pitch and density from changes in notes.
 
-    def reCalc(self):
-        self.minx = self.cx - self.xs
-        self.miny = self.cy - self.ys
-        self.maxx = self.cx + self.xs
-        self.maxy = self.cy + self.ys
-
-    def draw(self,canvas):
-        color = "#44d9e6"
-        thickness = 2
-        canvas.create_rectangle(self.minx,self.miny,self.maxx,self.maxy,
-                                fill=color,width=3)
-        canvas.create_text(self.cx,self.cy,text=self.text,font="Helvetica 15 bold")
-
-    def onclick(self,data):
-        #switch mode and reset time
-        if data.mouseX > self.minx and data.mouseX < self.maxx \
-        and data.mouseY > self.miny and data.mouseY < self.maxy:
-            data.readyForDeltaDraw = False
-            #data.canvas.delete("all")
-            data.mode = self.mode 
-            data.curTime = 0 
-
-class saveButton(button):
-    def onclick(self,data):
-        if data.mouseX > self.minx and data.mouseX < self.maxx \
-        and data.mouseY > self.miny and data.mouseY < self.maxy:
-            if data.saved == True: return
-            directory = filedialog.askdirectory()
-            #print("NAME!!!",directory)
-            saveImage(data.canvas,data,directory)
-            data.saved = True
-
-class shareButton(button):
-    def onclick(self,data):
-        if data.mouseX > self.minx and data.mouseX < self.maxx \
-        and data.mouseY > self.miny and data.mouseY < self.maxy:
-            if data.shared == True: return
-            webbrowser.open("http://google.com")
-            data.shared = True
-
-class stopButton(button):
-    def onclick(self,data):
-        if data.mouseX > self.minx and data.mouseX < self.maxx \
-        and data.mouseY > self.miny and data.mouseY < self.maxy:
-            data.stop = True
-        
-
-
-def bindButton(button,data):
-    button.draw(data.canvas)
-    button.onclick(data)
+    @param pitches: five notes in the analysis cycle, written in English notation
+    @return: ringType, a list of color, and inner&outer radius
+    '''
+    
+    if len(data.rings) == 0:
+        data.ringType = "pure" #one color
+    else:
+        #update data.ringType and data.diffList
+        NoteListToType(data.anaCycle.pitch,data)
+    #update data.incR
+    strenToIncR(avg(data.anaCycle.stren),data)
+    #update data.colors
+    colorListGen(data)
+    #notify redrawAll
+    data.addFlag = True
 
 def updateAnaCycle(data):
     '''
@@ -276,84 +236,31 @@ def updateAnaCycle(data):
         data.anaCycle.stren.append(data.stren)
         data.anaCycle.freq.append(data.freq)
         data.anaCycle.pitch.append(data.pitch) 
-        #print(data.anaCycle.pitch,data.anaCycle.stren)
-
-################################################################################
-############################### Ring Class #####################################
-################################################################################
-class firstCircle(object):
-    def __init__(self,canvas,zeroX,zeroY,color,radius):
-        self.canvas=canvas
-        self.color = color
-        self.zeroX = zeroX
-        self.zeroY = zeroY
-        self.r = radius
-        self.angle = 0
-
-    def draw(self,data):
-        cx = self.zeroX
-        cy = self.zeroY
-        r=self.r
-        item = self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
-        if data.addFlag == True:
-            data.items.append([item])
-
-class musicRing(object):
-    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
-        self.canvas = canvas
-        self.zeroX = zeroX
-        self.zeroY = zeroY
-        self.innerR = innerR
-        self.outerR = outerR
-        self.unitR = (outerR - innerR)/4
-        self.colors = colors
-        self.angle = startAngle
-        self.delete = False
-
-    def translate(self,coord):
-        '''move center'''
-        pass
-
-class wavyRing(musicRing):
-
-    def draw(self,data):
-        if self.delete == True: pass
-        drawHelper.drawCircleRingOfCircles(data,self.canvas,self.zeroX,self.zeroY,
-                                self.innerR,self.innerR + 2*self.unitR,
-                                self.colors,self.angle)
-
-class colorfulBeads(musicRing):
-    '''
-    Has most pitch changes in an analysis cycle
-    '''
-    def draw(self,data):
-        if self.delete == True: pass
-        drawHelper.drawColorfulBeads(data,self.canvas,self.zeroX,self.zeroY,
-                          self.innerR,self.outerR,self.colors,self.angle)
-
-
-class pureRing(musicRing):
-
-    def draw(self,data):
-        if self.delete == True: pass
-        drawHelper.drawPureRing(data,self.canvas,self.zeroX,self.zeroY,
-                     self.innerR,self.outerR,self.colors,self.angle)
 
 ################################################################################
 ############################### Tk Func ########################################
 ################################################################################
-
 def init(data):
+
     data.curTime = 0
     data.ringCount = 0
-    data.mode = "home"
-    data.mouseX = 0
-    data.mouseY = 0
+    data.radii=[]
+    data.firstCircle = False
+    data.oldR = 0
+    data.colors = []
+    data.rings=[]
+    data.ringType=""
+    data.incR=0
+
+    
+    data.diffList=[]
+    class Struct(object): pass
+    data.anaCycle = Struct()
     data.freq = 0
     data.pitch = 0
     data.stren = 0
     data.pOffset = 157
-    #data.logo=[]
+
     ########## matplotlib data ######## 
     fig = plt.figure()
     ax = plt.subplot()
@@ -361,46 +268,30 @@ def init(data):
     line_fft, = ax.plot(x_fft, np.random.rand(CHUNK), '-', lw=2)
     data.line_fft = line_fft
     ####################only for createMode###########
-    data.radii=[]
-    data.firstCircle = False
-    data.oldR = 0
-    data.colors = []
+    
 
-    data.rings=[]
-    data.ringType=""
-    data.incR=0
-    data.diffList=[]
-
-    data.fullFlag = False
-    data.addFlag=False
     data.bgColor="black"
-    data.logo = data.image = PhotoImage(file="logo.gif")
+
+    data.logo = PhotoImage(file="logo.gif")
+
+    dancingNoteInit(data)
+    menuInit(data)
+
     data.homeButton = button(data.width/4,data.height/4,"home","home")
     data.saveButton = saveButton(data.width/4,data.height/5,"save","save")
     
-
-    class menuParam: pass
-    data.menu = menuParam()
-    data.menu.homeButton = button(data.width/4,data.height/4,"home","home")
-    data.menu.saveButton = saveButton(data.width/4,data.height/5,"save","save")
-    data.menu.shareButton = shareButton(data.width/4,data.height/4,"share","share")
-    data.menu.stopButton = stopButton(data.width/4,data.height/4,"stop","stop")
-    buttons = [data.menu.homeButton, data.menu.stopButton, data.menu.saveButton, data.menu.shareButton]
-    data.createMenu = sideMenu(data,0,0,data.width/6,2*data.height/3,"pink",[1,1,1,1],buttons,20)
-
-
+    #status init
+    data.mode = "home"
     data.saved = False
     data.shared = False
-
-    #bound for the sound canvas
-    data.bound = [data.width/6, 0, data.width, data.height]
-
     data.stop = False
-    data.items = []
-    data.bgItem = 0
+    data.fullFlag = False
+    data.addFlag=False
+    data.mouseX = 0
+    data.mouseY = 0
 
-    class Struct(object): pass
-    data.anaCycle = Struct()
+    data.items = []
+
 
 def mousePressed(event, data):
     # use event.x and event.y
@@ -463,67 +354,14 @@ def homeRedrawAll(canvas,data):
     bindButton(about_button,data)
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
     bindButton(analysis_button,data)
-    canvas.create_image(data.width/2, data.height/3,  image=data.image)
+    canvas.create_image(data.width/2, data.height/3,  image=data.logo)
     data.readyForDeltaDraw = True
     
 
 ###############################################################################
 ############################### Create Mode ####################################
 ################################################################################
-class sideMenu(object):
-    '''
-    Menu object. Take in a list of button and size specification, display
-    a menu with all the buttons
-    '''
-    def __init__(self,data,x0,y0,x1,y1,colors,grid,buttons,space=0):
-        self.data = data
-        self.x0 = x0
-        self.y0 = y0
-        self.x1 = x1
-        self.y1 = y1
-        self.dy = self.y1-self.y0
-        self.grid = grid
-        self.space = space
-        self.buttons = buttons
-        self.init = True
 
-    def drawMenu(self):
-        if self.init == True:
-            grid = self.grid
-            oldY = 0
-            xSize = (self.x1 - self.x0)/2
-            cx = self.x0 + xSize
-            numSpace = len(grid) - 1
-            print(grid)
-            unitY = (self.dy - numSpace * self.space) / sum(grid)
-            for i in range(len(grid)):
-                ratio = grid[i]
-                nexY = oldY + unitY * ratio
-                ySize = (nexY - oldY)/2
-                cy = oldY + ySize
-                #change button attributes
-                print(self.buttons[i])
-                print("*******************")
-                self.buttons[i].cx = cx
-                self.buttons[i].cy = cy
-                self.buttons[i].xs = xSize
-                self.buttons[i].ys = ySize
-                self.buttons[i].reCalc()
-                print("old",oldY,"nex",nexY)
-                oldY = nexY
-        self.init = False
-        for button in self.buttons:
-            bindButton(button,self.data)
-
-
-def debugPrint(data):
-    ringList = data.rings
-    for ring in ringList:
-        if type(ring)==firstCircle: continue
-        print(ring.innerR,ring.outerR,type(ring).__name__)
-
-def avg(l):
-    return sum(l)/len(l)
 
 def createTimerFired(canvas,data):
     '''
@@ -538,51 +376,37 @@ def createTimerFired(canvas,data):
     '''
     
     #Receive and analyse audio data
-    stream = data.stream
-    rawData = stream.read(CHUNK,exception_on_overflow = False)
-    data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)        
+    if data.stop == False:
 
-    #for ring in data.rings:
-        #ring.angle += math.pi/6
+        stream = data.stream
+        rawData = stream.read(CHUNK,exception_on_overflow = False)
+        data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)        
 
-    #do not draw ring for backgrond noise
-    updateAnaCycle(data)
-    if data.curTime%5 == 4:
-        #print(data.anaCycle.stren)
-        avgStren = avg(data.anaCycle.stren)
-        #print("avg!!!",avgStren)
-        if avgStren > InputThreshold:
-            cyclePitchAnalysis(data)
-            #debugPrint(data)
-    
-    data.curTime += 1 
+        if data.stren > InputThreshold:
+            data.dance = True
+        else:
+            data.dance = False
+        #for ring in data.rings:
+            #ring.angle += math.pi/6
 
-def cyclePitchAnalysis(data):
-    '''
-    Determine the color from the overall pitch and density from changes in notes.
+        #do not draw ring for backgrond noise
+        updateAnaCycle(data)
+        if data.curTime%5 == 4:
+            #print(data.anaCycle.stren)
+            avgStren = avg(data.anaCycle.stren)
+            #print("avg!!!",avgStren)
+            if avgStren > InputThreshold:
+                cyclePitchAnalysis(data)
+                #debugPrint(data)
 
-    @param pitches: five notes in the analysis cycle, written in English notation
-    @return: ringType, a list of color, and inner&outer radius
-    '''
-    
-    if len(data.rings) == 0:
-        data.ringType = "pure" #one color
-    else:
-        #update data.ringType and data.diffList
-        musicHelper.NoteListToType(data.anaCycle.pitch,data)
-    #update data.incR
-    musicHelper.strenToIncR(avg(data.anaCycle.stren),data)
-    #update data.colors
-    musicHelper.colorListGen(data)
-    #notify redrawAll
-    data.addFlag = True
+        verticalJump(data)
+        
+        data.curTime += 1 
 
 def createDeltaDraw(canvas, data):
-    # drawHelper.drawPureRing(data,canvas,data.width/2,data.height/2,30,50,["red"])
-    # drawHelper.drawPureRing(data,canvas,data.width/2,data.height/2,50,80,["yellow"])
-    # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,80,100,["green","blue"])
-    # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,100,120,["green","blue"])
-    # return
+ 
+    canvas.coords(data.dancingNote,(data.width/12,data.dancingHeight))
+
     if data.addFlag == True and data.stop==False:
         offsetX, offsetY = data.width/6-100, 0
         zeroX,zeroY = data.width/2 + offsetX, data.height/2 + offsetY
@@ -604,15 +428,11 @@ def createDeltaDraw(canvas, data):
         elif data.ringType == "wavy":
             ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)        
         data.oldR = data.oldR+data.incR
-        # print("old",data.oldR,"inc",data.incR)
-        # print("##############################")
+
+
         data.rings.append(ring)
         ring.draw(data)
 
-        curItems = data.items[-1]
-        # for item in curItems[::-1]:
-        #     canvas.tag_lower(item)
-        # canvas.tag_lower(data.bgItem)
         data.addFlag = False
 
     if data.fullFlag == True:
@@ -628,45 +448,36 @@ def createDeltaDraw(canvas, data):
                 ring.delete = True
         data.readyForDeltaDraw = False
 
-def textRow(canvas,left,right,top,down,texts):
-    rows = len(texts)
-    cx = (right - left)/2
-    y0 = top
-    unitInc = (down - top) / rows
-    for i in range(rows):
-        cy = y0 + i *unitInc
-        canvas.create_text(cx,cy,text=texts[i],font="Helvetica 15 bold")
-
-
 def createRedrawAll(canvas,data):
     data.bgItem = canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
-    canvas.create_rectangle(data.width/6,0,data.width,data.height,fill=None,width=5)
 
 
     #reverse to avoid hiding of the previous rings
     for ring in data.rings[::-1]:
         ring.draw(data)
 
-    canvas.create_rectangle(0,0,data.width/6,data.height,fill="#44d9e6",width=2)
+    canvas.create_rectangle(0,0,data.width/6,data.height,fill="#44d9e6",width=3)
     
     data.createMenu.drawMenu()
     texts = ["Sing something to begin :)",
              "Press ↑ to zoom in!",
              "Press ↓ to zoon out!",
              "Press w,a,s,d to move!"]
-    textRow(canvas,0,data.width/6,2*data.height/3,data.height,
+    textRow(canvas,0,data.width/6,2*data.height/3-40,data.height-150,
             texts)
 
+    canvas.create_rectangle(0,data.height-150,data.width/6,data.height,fill="#44d9e6",width=3)
+
+    data.dancingNote = canvas.create_image(data.width/12, data.dancingHeight, image=data.note)
+
     data.readyForDeltaDraw = True
-    # savename = 'yourImage'
-    # ImageGrab.grab((0,0,data.width,data.height)).save(savename + '.jpg')
+
 def createMousePressed(event,data):
     data.mouseX = event.x
     data.mouseY = event.y
 
 def createKeyPressed(event,data):
     if event.keysym == "Up":
-        print("You pressed I!")
         scale = 1.1
         for ring in data.rings:
             if type(ring)==firstCircle: continue
@@ -675,8 +486,8 @@ def createKeyPressed(event,data):
             if ring.innerR > data.width:
                 ring.delete = True
         data.readyForDeltaDraw = False
+
     if event.keysym == "Down":
-        print("You pressed O!")
         scale = 0.9
         for ring in data.rings:
             if type(ring)==firstCircle: continue
@@ -685,40 +496,31 @@ def createKeyPressed(event,data):
             if ring.innerR < data.rings[0].r:
                 ring.delete = True
         data.readyForDeltaDraw = False
+
     if event.keysym == "w":
         step = -20
         for ring in data.rings:
             ring.zeroY += step
         data.readyForDeltaDraw = False
+
     if event.keysym == "s":
-        print("You pressed s!")
         step = 20
         for ring in data.rings:
             ring.zeroY += step
         data.readyForDeltaDraw = False
+
     if event.keysym == "a":
-        print("You pressed w!")
         step = -20
         for ring in data.rings:
             ring.zeroX += step
         data.readyForDeltaDraw = False
+        
     if event.keysym == "d":
-        print("You pressed w!")
         step = 20
         for ring in data.rings:
             ring.zeroX += step
         data.readyForDeltaDraw = False
 
-def saveImage(canvas,data,dirPath):
-    x=data.root.winfo_rootx()+canvas.winfo_x()
-    y=data.root.winfo_rooty()+canvas.winfo_y()
-    # x=data.root.winfo_rootx()+canvas.winfo_x()
-    # y=data.root.winfo_rooty()+canvas.winfo_y()
-    x1=x+data.width*2
-    y1=y+data.height*2
-    #ImageGrab.grab(0,0,data.width,data.height).save("test.png")
-    path = os.path.join(dirPath,"new.png")
-    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save(path)
 ################################################################################
 ############################### Help Mode ######################################
 ################################################################################

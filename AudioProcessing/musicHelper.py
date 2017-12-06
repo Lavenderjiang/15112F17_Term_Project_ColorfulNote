@@ -4,7 +4,7 @@
 
 def colorListGen(data):
     res = []
-    print(data.ringType)
+    #print(data.ringType)
     if data.ringType == "pure": num = 1
     elif data.ringType == "bead": num = 2
     elif data.ringType == "wavy": num = 4
@@ -180,8 +180,8 @@ def NoteListToType(noteList,data):
     if count <=1: data.ringType="pure"
     elif count <= 2: data.ringType="bead"
     else: data.ringType= "wavy"
-    print(diffList)
-    print(data.ringType)
+    #print(diffList)
+    #print(data.ringType)
     data.diffList=diffList
 
 def testConvertType():

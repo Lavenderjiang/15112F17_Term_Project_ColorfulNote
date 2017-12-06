@@ -26,7 +26,7 @@ def drawOval(canvas, data):
     left = data.ovalX % 400
     width = 5 + left // 5
     color = hexColor(left * 255// 400, left * 255// 400, 0)
-    data.oval = canvas.create_oval(left, 250, left+width, 300, fill=color)
+    data.oval = canvas.create_image(data.width/12, data.height/6,  image=data.note)
     
 
 def deltaDrawOval(canvas, data):
@@ -34,11 +34,11 @@ def deltaDrawOval(canvas, data):
     width = 5 + left // 5   
     color = hexColor(left * 255// 400, left * 255// 400, 0)
     r = 50
-    canvas.create_rectangle(left, 400, left+width, 500 ,fill = color)
+    #canvas.create_rectangle(left, 400, left+width, 500 ,fill = color)
     # change oval's bounds
-    canvas.coords(data.oval, (left, 250, left+width, 300) )
+    canvas.coords(data.oval, (left,left+width) )
     # change oval's color
-    canvas.itemconfig(data.oval, fill=color)
+    #canvas.itemconfig(data.oval, fill=color)
 
 def redrawAll(canvas, data):
     drawRectangles(canvas, data)
@@ -71,6 +71,7 @@ def init(data):
         data.rects.append((left, top, right, bottom, color))
     data.ovalX = 200
     data.timerDelay = 1
+    data.note = PhotoImage(file="note.gif")
 
 def mousePressed(event, data): pass
 def keyPressed(event, data): pass

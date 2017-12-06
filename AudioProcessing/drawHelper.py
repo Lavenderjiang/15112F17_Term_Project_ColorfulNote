@@ -51,7 +51,7 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startA
 
     Given the innerR and outerR of a ring, draw a ring made of circles on Canvas.
 
-    @param zeroX, zeroY: cartesian coordinate of the center of the ring
+    # @param zeroX, zeroY: cartesian coordinate of the center of the ring
     @param innerR: the radius of the inner circle which all ring circles are tangent to
     @param outerR: the radius of the outer circle which all ring circles are tangent to
     @param midR: the radius of the midCircle. The centers of all the ring circles is a subset of this circle.
@@ -87,7 +87,9 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startA
         cx += zeroX
         cy += zeroY
         i = canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color,width=width)
+        #print("item",i)
         res.append(i)
+    #print("res",res)
     return res
 
 
@@ -182,6 +184,7 @@ def drawCircleRingOfCircles(data,canvas,zeroX,zeroY,innerR,outerR,colours,startA
         #coordinate offset for different center
 
         item1 = canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=outerColor)
+        print("item1",item1)
         item2 = canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=midColor)
         item3 = drawCircleRing(canvas,cx,cy,r/3,r,innerColor,bgColor)
         add = [item1,item2]
@@ -190,3 +193,65 @@ def drawCircleRingOfCircles(data,canvas,zeroX,zeroY,innerR,outerR,colours,startA
 
     if data.addFlag == True:
         data.items.append(items)
+
+################################################################################
+############################### Ring Class #####################################
+################################################################################
+
+class firstCircle(object):
+    def __init__(self,canvas,zeroX,zeroY,color,radius):
+        self.canvas=canvas
+        self.color = color
+        self.zeroX = zeroX
+        self.zeroY = zeroY
+        self.r = radius
+        self.angle = 0
+
+    def draw(self,data):
+        cx = self.zeroX
+        cy = self.zeroY
+        r=self.r
+        item = self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
+        if data.addFlag == True:
+            data.items.append([item])
+
+class musicRing(object):
+    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
+        self.canvas = canvas
+        self.zeroX = zeroX
+        self.zeroY = zeroY
+        self.innerR = innerR
+        self.outerR = outerR
+        self.unitR = (outerR - innerR)/4
+        self.colors = colors
+        self.angle = startAngle
+        self.delete = False
+
+    def translate(self,coord):
+        '''move center'''
+        pass
+
+class wavyRing(musicRing):
+
+    def draw(self,data):
+        if self.delete == True: pass
+        drawCircleRingOfCircles(data,self.canvas,self.zeroX,self.zeroY,
+                                self.innerR,self.innerR + 2*self.unitR,
+                                self.colors,self.angle)
+
+class colorfulBeads(musicRing):
+    '''
+    Has most pitch changes in an analysis cycle
+    '''
+    def draw(self,data):
+        if self.delete == True: pass
+        drawColorfulBeads(data,self.canvas,self.zeroX,self.zeroY,
+                          self.innerR,self.outerR,self.colors,self.angle)
+
+
+class pureRing(musicRing):
+
+    def draw(self,data):
+        if self.delete == True: pass
+        drawPureRing(data,self.canvas,self.zeroX,self.zeroY,
+                     self.innerR,self.outerR,self.colors,self.angle)
