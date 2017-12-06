@@ -24,7 +24,9 @@ from random import randint
 from ast import literal_eval
 from PIL import Image
 from PIL import ImageGrab
+from tkinter import filedialog
 import webbrowser
+import os
 
 fft = np.fft.fft
 np.set_printoptions(threshold=np.nan) #print full np array
@@ -237,7 +239,9 @@ class saveButton(button):
         if data.mouseX > self.minx and data.mouseX < self.maxx \
         and data.mouseY > self.miny and data.mouseY < self.maxy:
             if data.saved == True: return
-            saveImage(data.canvas,data)
+            directory = filedialog.askdirectory()
+            #print("NAME!!!",directory)
+            saveImage(data.canvas,data,directory)
             data.saved = True
 
 class shareButton(button):
@@ -449,6 +453,8 @@ def homeDeltaDraw(canvas, data):
     pass
 
 def homeRedrawAll(canvas,data):
+    #filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
+    
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     gap = 30
     create_button = button(data.width/2,data.height*2/3 - 2*gap,"create","Create!")
@@ -658,7 +664,7 @@ def createMousePressed(event,data):
     data.mouseY = event.y
 
 
-def saveImage(canvas,data):
+def saveImage(canvas,data,dirPath):
     x=data.root.winfo_rootx()+canvas.winfo_x()
     y=data.root.winfo_rooty()+canvas.winfo_y()
     # x=data.root.winfo_rootx()+canvas.winfo_x()
@@ -666,7 +672,8 @@ def saveImage(canvas,data):
     x1=x+data.width*2
     y1=y+data.height*2
     #ImageGrab.grab(0,0,data.width,data.height).save("test.png")
-    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save("test.png")
+    path = os.path.join(dirPath,"new.png")
+    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save(path)
 ################################################################################
 ############################### Help Mode ######################################
 ################################################################################
