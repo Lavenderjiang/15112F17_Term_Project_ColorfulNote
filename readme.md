@@ -14,7 +14,7 @@ To use ColorfulNote, you need to have python3 with the required modules.
 * PIL >= 1.1.7
 * pyAudio >= 0.2.11
 
-You can check the version of your python by typing in the terminal
+You can check the version of your python by typing in the terminal:
 
 
 ```
@@ -22,13 +22,13 @@ which python
 ```
 
 
-or if you have multiple versions of python
+Or if you have multiple versions of python:
 
 ```
 which python3
 ```
 
-If you are using Anaconda python, you can check the versions of all your installed packages by typing
+If you are using Anaconda python, you can check the versions of all your installed packages by typing:
 
 ```
 conda list
@@ -43,6 +43,7 @@ To create a virtual environment in Anaconda:
 ```
 conda create --name myenv
 ```
+
 To activate the virtual environment:
 
 ```

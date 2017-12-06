@@ -32,7 +32,6 @@ fft = np.fft.fft
 np.set_printoptions(threshold=np.nan) #print full np array
 
 
-
 ################################################################################
 ############################### Globals ########################################
 ################################################################################
@@ -283,17 +282,17 @@ def updateAnaCycle(data):
 ############################### Ring Class #####################################
 ################################################################################
 class firstCircle(object):
-    def __init__(self,canvas,cx,cy,color,radius):
+    def __init__(self,canvas,zeroX,zeroY,color,radius):
         self.canvas=canvas
         self.color = color
-        self.cx = cx
-        self.cy = cy
+        self.zeroX = zeroX
+        self.zeroY = zeroY
         self.r = radius
         self.angle = 0
 
     def draw(self,data):
-        cx = self.cx
-        cy = self.cy
+        cx = self.zeroX
+        cy = self.zeroY
         r=self.r
         item = self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
         if data.addFlag == True:
@@ -413,6 +412,7 @@ def mousePressed(event, data):
 def keyPressed(event, data):
     # use event.char and event.keysym
     if data.mode == "home": homeKeyPressed(event,data)
+    if data.mode == "create": createKeyPressed(event,data)
     if data.mode == "analysis": analysisKeyPressed(event,data)
 
 def timerFired(canvas,data):
@@ -651,8 +651,9 @@ def createRedrawAll(canvas,data):
     
     data.createMenu.drawMenu()
     texts = ["Sing something to begin :)",
-             "Press I to zoom in!",
-             "Press O to zoon out!"]
+             "Press ↑ to zoom in!",
+             "Press ↓ to zoon out!",
+             "Press w,a,s,d to move!"]
     textRow(canvas,0,data.width/6,2*data.height/3,data.height,
             texts)
 
@@ -663,6 +664,50 @@ def createMousePressed(event,data):
     data.mouseX = event.x
     data.mouseY = event.y
 
+def createKeyPressed(event,data):
+    if event.keysym == "Up":
+        print("You pressed I!")
+        scale = 1.1
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.innerR > data.width:
+                ring.delete = True
+        data.readyForDeltaDraw = False
+    if event.keysym == "Down":
+        print("You pressed O!")
+        scale = 0.9
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.innerR < data.rings[0].r:
+                ring.delete = True
+        data.readyForDeltaDraw = False
+    if event.keysym == "w":
+        step = -20
+        for ring in data.rings:
+            ring.zeroY += step
+        data.readyForDeltaDraw = False
+    if event.keysym == "s":
+        print("You pressed s!")
+        step = 20
+        for ring in data.rings:
+            ring.zeroY += step
+        data.readyForDeltaDraw = False
+    if event.keysym == "a":
+        print("You pressed w!")
+        step = -20
+        for ring in data.rings:
+            ring.zeroX += step
+        data.readyForDeltaDraw = False
+    if event.keysym == "d":
+        print("You pressed w!")
+        step = 20
+        for ring in data.rings:
+            ring.zeroX += step
+        data.readyForDeltaDraw = False
 
 def saveImage(canvas,data,dirPath):
     x=data.root.winfo_rootx()+canvas.winfo_x()
