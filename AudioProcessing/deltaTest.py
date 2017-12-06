@@ -221,7 +221,7 @@ class button(object):
         thickness = 2
         canvas.create_rectangle(self.minx,self.miny,self.maxx,self.maxy,
                                 fill=color,width=3)
-        canvas.create_text(self.cx,self.cy,text=self.text,font="Helvetica")
+        canvas.create_text(self.cx,self.cy,text=self.text,font="Helvetica 15 bold")
 
     def onclick(self,data):
         #switch mode and reset time
@@ -247,6 +247,14 @@ class shareButton(button):
             if data.shared == True: return
             webbrowser.open("http://google.com")
             data.shared = True
+
+class stopButton(button):
+    def onclick(self,data):
+        if data.mouseX > self.minx and data.mouseX < self.maxx \
+        and data.mouseY > self.miny and data.mouseY < self.maxy:
+            data.stop = True
+        
+
 
 def bindButton(button,data):
     button.draw(data.canvas)
@@ -373,8 +381,9 @@ def init(data):
     data.menu.homeButton = button(data.width/4,data.height/4,"home","home")
     data.menu.saveButton = saveButton(data.width/4,data.height/5,"save","save")
     data.menu.shareButton = shareButton(data.width/4,data.height/4,"share","share")
-    buttons = [data.menu.homeButton, data.menu.saveButton, data.menu.shareButton]
-    data.createMenu = sideMenu(data,0,0,data.width/6,data.height/2,"pink",[1,1,1],buttons,20)
+    data.menu.stopButton = stopButton(data.width/4,data.height/4,"stop","stop")
+    buttons = [data.menu.homeButton, data.menu.stopButton, data.menu.saveButton, data.menu.shareButton]
+    data.createMenu = sideMenu(data,0,0,data.width/6,2*data.height/3,"pink",[1,1,1,1],buttons,20)
 
 
     data.saved = False
@@ -568,8 +577,8 @@ def createDeltaDraw(canvas, data):
     # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,80,100,["green","blue"])
     # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,100,120,["green","blue"])
     # return
-    if data.addFlag == True:
-        offsetX, offsetY = data.width/6-100, -70
+    if data.addFlag == True and data.stop==False:
+        offsetX, offsetY = data.width/6-100, 0
         zeroX,zeroY = data.width/2 + offsetX, data.height/2 + offsetY
         innerR = data.oldR
         outerR = data.oldR + data.incR
@@ -613,6 +622,16 @@ def createDeltaDraw(canvas, data):
                 ring.delete = True
         data.readyForDeltaDraw = False
 
+def textRow(canvas,left,right,top,down,texts):
+    rows = len(texts)
+    cx = (right - left)/2
+    y0 = top
+    unitInc = (down - top) / rows
+    for i in range(rows):
+        cy = y0 + i *unitInc
+        canvas.create_text(cx,cy,text=texts[i],font="Helvetica 15 bold")
+
+
 def createRedrawAll(canvas,data):
     data.bgItem = canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     canvas.create_rectangle(data.width/6,0,data.width,data.height,fill=None,width=5)
@@ -622,7 +641,14 @@ def createRedrawAll(canvas,data):
     for ring in data.rings[::-1]:
         ring.draw(data)
 
+    canvas.create_rectangle(0,0,data.width/6,data.height,fill="#44d9e6",width=2)
+    
     data.createMenu.drawMenu()
+    texts = ["Sing something to begin :)",
+             "Press I to zoom in!",
+             "Press O to zoon out!"]
+    textRow(canvas,0,data.width/6,2*data.height/3,data.height,
+            texts)
 
     data.readyForDeltaDraw = True
     # savename = 'yourImage'
@@ -640,7 +666,7 @@ def saveImage(canvas,data):
     x1=x+data.width*2
     y1=y+data.height*2
     #ImageGrab.grab(0,0,data.width,data.height).save("test.png")
-    ImageGrab.grab().crop((x,y,x1,y1)).save("test.png")
+    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save("test.png")
 ################################################################################
 ############################### Help Mode ######################################
 ################################################################################
@@ -689,7 +715,7 @@ def analysisMousePressed(event,data):
 ############################# Main Function ####################################
 ################################################################################
 
-def run(width=1200, height=800):
+def run(width=1200, height=700):
     def deltaDrawWrapper(canvas, data):
         if (data.readyForDeltaDraw == True):
             deltaDraw(canvas, data)
