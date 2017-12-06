@@ -227,6 +227,8 @@ class button(object):
         #switch mode and reset time
         if data.mouseX > self.minx and data.mouseX < self.maxx \
         and data.mouseY > self.miny and data.mouseY < self.maxy:
+            data.readyForDeltaDraw = False
+            #data.canvas.delete("all")
             data.mode = self.mode 
             data.curTime = 0 
 
@@ -277,12 +279,13 @@ class firstCircle(object):
         self.r = radius
         self.angle = 0
 
-    def draw(self):
+    def draw(self,data):
         cx = self.cx
         cy = self.cy
         r=self.r
-        self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
-
+        item = self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
+        if data.addFlag == True:
+            data.items.append([item])
 
 class musicRing(object):
     def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
@@ -296,19 +299,15 @@ class musicRing(object):
         self.angle = startAngle
         self.delete = False
 
-    def scale(self,factor):
-        '''change inner and outerR'''
-        pass
-
     def translate(self,coord):
         '''move center'''
         pass
 
 class wavyRing(musicRing):
 
-    def draw(self):
+    def draw(self,data):
         if self.delete == True: pass
-        drawHelper.drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
+        drawHelper.drawCircleRingOfCircles(data,self.canvas,self.zeroX,self.zeroY,
                                 self.innerR,self.innerR + 2*self.unitR,
                                 self.colors,self.angle)
 
@@ -316,15 +315,17 @@ class colorfulBeads(musicRing):
     '''
     Has most pitch changes in an analysis cycle
     '''
-    def draw(self):
-        drawHelper.drawColorfulBeads(self.canvas,self.zeroX,self.zeroY,
+    def draw(self,data):
+        if self.delete == True: pass
+        drawHelper.drawColorfulBeads(data,self.canvas,self.zeroX,self.zeroY,
                           self.innerR,self.outerR,self.colors,self.angle)
 
 
 class pureRing(musicRing):
 
-    def draw(self):
-        drawHelper.drawPureRing(self.canvas,self.zeroX,self.zeroY,
+    def draw(self,data):
+        if self.delete == True: pass
+        drawHelper.drawPureRing(data,self.canvas,self.zeroX,self.zeroY,
                      self.innerR,self.outerR,self.colors,self.angle)
 
 ################################################################################
@@ -383,6 +384,8 @@ def init(data):
     data.bound = [data.width/6, 0, data.width, data.height]
 
     data.stop = False
+    data.items = []
+    data.bgItem = 0
 
     class Struct(object): pass
     data.anaCycle = Struct()
@@ -403,6 +406,12 @@ def timerFired(canvas,data):
     if data.mode == "home": homeTimerFired(data)
     if data.mode == "analysis": analysisTimerFired(data)
     if data.mode == "create": createTimerFired(canvas,data)
+
+def deltaDraw(canvas,data):
+    if data.mode == "home": homeDeltaDraw(canvas,data)
+    if data.mode == "create": createDeltaDraw(canvas,data)
+    if data.mode == "analysis": analysisDeltaDraw(canvas,data)
+    if data.mode == "help": helpDeltaDraw(canvas,data)
 
 
 def redrawAll(canvas,data):
@@ -427,6 +436,8 @@ def homeMousePressed(event,data):
 def homeKeyPressed(event, data):
     pass
 
+def homeDeltaDraw(canvas, data):
+    pass
 
 def homeRedrawAll(canvas,data):
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
@@ -438,6 +449,7 @@ def homeRedrawAll(canvas,data):
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
     bindButton(analysis_button,data)
     canvas.create_image(data.width/2, data.height/3,  image=data.image)
+    data.readyForDeltaDraw = True
     
 
 ###############################################################################
@@ -537,6 +549,7 @@ def cyclePitchAnalysis(data):
     @param pitches: five notes in the analysis cycle, written in English notation
     @return: ringType, a list of color, and inner&outer radius
     '''
+    
     if len(data.rings) == 0:
         data.ringType = "pure" #one color
     else:
@@ -549,9 +562,12 @@ def cyclePitchAnalysis(data):
     #notify redrawAll
     data.addFlag = True
 
-
-def createRedrawAll(canvas,data):
-    canvas.create_rectangle(data.width/6,0,data.width,data.height,fill=None,width=5)
+def createDeltaDraw(canvas, data):
+    # drawHelper.drawPureRing(data,canvas,data.width/2,data.height/2,30,50,["red"])
+    # drawHelper.drawPureRing(data,canvas,data.width/2,data.height/2,50,80,["yellow"])
+    # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,80,100,["green","blue"])
+    # drawHelper.drawColorfulBeads(data,canvas,data.width/2,data.height/2,100,120,["green","blue"])
+    # return
     if data.addFlag == True:
         offsetX, offsetY = data.width/6-100, -70
         zeroX,zeroY = data.width/2 + offsetX, data.height/2 + offsetY
@@ -576,6 +592,12 @@ def createRedrawAll(canvas,data):
         # print("old",data.oldR,"inc",data.incR)
         # print("##############################")
         data.rings.append(ring)
+        ring.draw(data)
+
+        curItems = data.items[-1]
+        # for item in curItems[::-1]:
+        #     canvas.tag_lower(item)
+        # canvas.tag_lower(data.bgItem)
         data.addFlag = False
 
     if data.fullFlag == True:
@@ -589,13 +611,20 @@ def createRedrawAll(canvas,data):
             ring.outerR = ring.outerR * scale
             if ring.outerR < data.rings[0].r * threshold :
                 ring.delete = True
+        data.readyForDeltaDraw = False
+
+def createRedrawAll(canvas,data):
+    data.bgItem = canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
+    canvas.create_rectangle(data.width/6,0,data.width,data.height,fill=None,width=5)
 
 
     #reverse to avoid hiding of the previous rings
     for ring in data.rings[::-1]:
-        ring.draw()
+        ring.draw(data)
 
     data.createMenu.drawMenu()
+
+    data.readyForDeltaDraw = True
     # savename = 'yourImage'
     # ImageGrab.grab((0,0,data.width,data.height)).save(savename + '.jpg')
 def createMousePressed(event,data):
@@ -623,8 +652,12 @@ def helpMousePressed(event,data):
 def helpRedrawAll(canvas,data):
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     canvas.create_text(data.width/2,data.height/2,text="HELP!!!!")
-    b1 = button(data.width/4,data.height/4,"home","home")
-    bindButton(b1,data)
+    data.readyForDeltaDraw = True
+    #b1 = button(data.width/4,data.height/4,"home","home")
+    
+
+def helpDeltaDraw(canvas, data):
+    bindButton(data.homeButton,data)
 
 ################################################################################
 ############################# Analysis Mode ####################################
@@ -645,8 +678,10 @@ def analysisRedrawAll(canvas, data):
     canvas.create_oval(x-r,y-r,x+r,y+r, fill="purple", width=0)
     canvas.create_text(data.width*2/3,data.height*3/4,text = fToNote(data.freq))
     canvas.create_text(data.width*2/3,data.height*3/4-20,text = str(data.freq))
-    b1 = button(data.width/4,data.height/4,"home","home")
-    bindButton(b1,data)
+    data.readyForDeltaDraw = True
+
+def analysisDeltaDraw(canvas, data):
+    bindButton(data.homeButton,data)
 
 def analysisMousePressed(event,data):
     pass
@@ -668,7 +703,7 @@ def run(width=1200, height=800):
                                 fill='white', width=0)
         redrawAll(canvas, data)
         canvas.update() 
-        data.readyForDeltaDraw = True   
+           
 
     def mousePressedWrapper(event, canvas, data):
         mousePressed(event, data)
@@ -680,7 +715,7 @@ def run(width=1200, height=800):
 
     def timerFiredWrapper(canvas, data):
         timerFired(canvas, data)
-        redrawAllWrapper(canvas, data)
+        deltaDrawWrapper(canvas, data)
         # pause, then call timerFired again
         canvas.after(data.timerDelay, timerFiredWrapper, canvas, data)
     # Set up data and call init

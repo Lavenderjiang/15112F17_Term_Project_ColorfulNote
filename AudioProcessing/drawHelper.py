@@ -46,7 +46,7 @@ def polarToCartesian(r,angle):
 ############################### Drawing ########################################
 ################################################################################
 
-def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startAngle=0,spacing=0):
+def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startAngle=0,spacing=0,width=0):
     '''
 
     Given the innerR and outerR of a ring, draw a ring made of circles on Canvas.
@@ -75,7 +75,10 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startA
     unitFillAngle = totalFillAngle/totalCircle 
 
     
-    canvas.create_oval(zeroX-outerR,zeroY-outerR,zeroX+outerR,zeroY+outerR,fill=bgColor)
+    ####!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #canvas.create_oval(zeroX-outerR,zeroY-outerR,zeroX+outerR,zeroY+outerR,fill=bgColor)
+
+    res = []
     #startAngle = 0
     for i in range(totalCircle):
         angle = startAngle + i * (unitFillAngle + angleWithSpace)
@@ -83,9 +86,12 @@ def drawCircleRing(canvas,zeroX,zeroY,innerR,outerR,color,bgColor="black",startA
         #coordinate offset for different center
         cx += zeroX
         cy += zeroY
-        canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color)
+        i = canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color,width=width)
+        res.append(i)
+    return res
 
-def drawPureRing(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.2):
+
+def drawPureRing(data,canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.2):
     '''
     Draw method for colorfulBeads class. Three rings of circle, with each circle outlined by
     their deeper color, is drawn on canvas.
@@ -95,15 +101,17 @@ def drawPureRing(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0
     '''
     ringCount = 2
     innerColor, bgColor = colours[0],"orange"
-    r = (outerR - innerR) / 2
+    r = (outerR - innerR) 
     unitRange = r / ringCount
     toppingRatio = 0.2
 
     cx, cy = zeroX, zeroY
-    drawCircleRing(canvas,cx,cy,r+unitRange,r + 2*unitRange,innerColor,bgColor,startAngle)
-    drawCircleRing(canvas,cx,cy,r,r + unitRange,innerColor,bgColor,startAngle)
+    # drawCircleRing(canvas,cx,cy,r+unitRange,r + 2*unitRange,innerColor,bgColor,startAngle)
+    # drawCircleRing(canvas,cx,cy,r,r + unitRange,innerColor,bgColor,startAngle)
+    drawCircleRing(canvas,cx,cy,innerR+unitRange, innerR + 2*unitRange, innerColor,bgColor,startAngle,width=3)
+    drawCircleRing(canvas,cx,cy,innerR, innerR + unitRange, innerColor,bgColor,startAngle,width=3)
 
-def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.2):
+def drawColorfulBeads(data,canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.2):
     '''
     Draw method for colorfulBeads class. Three rings of circle, with each circle outlined by
     their deeper color, is drawn on canvas.
@@ -113,7 +121,7 @@ def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spac
     '''
     ringCount = 2
     innerColor, outerColor, bgColor = colours[0],colours[1],"black"
-    r = (outerR - innerR) / 2
+    r = (outerR - innerR) 
     unitRange = r / ringCount
     toppingRatio = 0.2
 
@@ -124,7 +132,7 @@ def drawColorfulBeads(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spac
     drawCircleRing(canvas,cx,cy,innerR,innerR + unitRange,innerColor,bgColor,startAngle)
 
 
-def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.7):
+def drawCircleRingOfCircles(data,canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=0,spacing=0.7):
     '''
 
     Draw method for the wavy ring class. A very colorful flower-like pattern is drawn.
@@ -165,6 +173,7 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=
     toppingR = dressingR * toppingRatio
     #toppingColor = "orange"
 
+    items = []
     for i in range(totalCircle):
         angle = startAngle + i * (unitFillAngle + angleWithSpace)
         cx,cy = polarToCartesian(midR,angle)
@@ -172,7 +181,12 @@ def drawCircleRingOfCircles(canvas,zeroX,zeroY,innerR,outerR,colours,startAngle=
         cy += zeroY
         #coordinate offset for different center
 
-        canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=outerColor)
-        canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=midColor)
+        item1 = canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=outerColor)
+        item2 = canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=midColor)
+        item3 = drawCircleRing(canvas,cx,cy,r/3,r,innerColor,bgColor)
+        add = [item1,item2]
+        add.extend(item3) #item3 is list
+        items.extend(add)
 
-        drawCircleRing(canvas,cx,cy,r/3,r,innerColor,bgColor)
+    if data.addFlag == True:
+        data.items.append(items)

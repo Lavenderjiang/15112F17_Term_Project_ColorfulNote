@@ -33,6 +33,8 @@ def deltaDrawOval(canvas, data):
     left = data.ovalX % 400
     width = 5 + left // 5   
     color = hexColor(left * 255// 400, left * 255// 400, 0)
+    r = 50
+    canvas.create_rectangle(left, 400, left+width, 500 ,fill = color)
     # change oval's bounds
     canvas.coords(data.oval, (left, 250, left+width, 300) )
     # change oval's color

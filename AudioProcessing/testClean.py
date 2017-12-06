@@ -195,10 +195,9 @@ class button(object):
     Usage:
         To activate button, call with bindButton().
     '''
-    def __init__(self,x,y,mode,display="button"):
-        xs = 40
-        yxRatio = 4
-        ys = xs/yxRatio
+    def __init__(self,x,y,mode,display="button",xs=40,ys =40/4):
+        self.xs = xs
+        self.ys = ys
         
         self.cx = x
         self.cy = y
@@ -209,6 +208,12 @@ class button(object):
         self.maxy = y + ys
         self.mode = mode
 
+    def reCalc(self):
+        self.minx = x - xs
+        self.miny = y - ys
+        self.maxx = x + xs
+        self.maxy = y + ys
+        
     def draw(self,canvas):
         color = "blue"
         thickness = 2
@@ -223,8 +228,8 @@ class button(object):
             data.mode = self.mode 
             data.curTime = 0 
 
-def bindButton(button,data,canvas):
-    button.draw(canvas)
+def bindButton(button,data):
+    button.draw(data.canvas)
     button.onclick(data)
 
 
@@ -410,11 +415,11 @@ def homeRedrawAll(canvas,data):
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     gap = 30
     create_button = button(data.width/2,data.height*2/3 - 2*gap,"create","Create!")
-    bindButton(create_button,data,canvas)
+    bindButton(create_button,data)
     about_button = button(data.width/2,data.height*2/3 - gap,"help","About")
-    bindButton(about_button,data,canvas)
+    bindButton(about_button,data)
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
-    bindButton(analysis_button,data,canvas)
+    bindButton(analysis_button,data)
     
     #b3 = button(data.width/2,data.height*2/3 - gap*2)
     canvas.create_image(data.width/2,data.height/3, image=data.logo)
