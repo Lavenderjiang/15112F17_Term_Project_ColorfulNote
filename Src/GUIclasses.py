@@ -12,10 +12,10 @@ def saveImage(canvas,data,dirPath):
     
     path = os.path.join(dirPath,"new.png")
     wd = os.getcwd()
-    print("***********wd:",wd)
+    #print("***********wd:",wd)
     sharePath = os.path.join(wd,"shareMode/static/images/share.png")
-    print("sharePath",sharePath)
-    print("**********************")
+    #print("sharePath",sharePath)
+    #print("**********************")
 
     img = ImageGrab.grab().crop((x+500,y+50,x1,y1))
     data.userImage = img
@@ -169,10 +169,10 @@ def textRow(canvas,left,right,top,down,texts,color="black"):
     cx = left + (right - left)/2
     y0 = top
     unitInc = (down - top) / rows
-    print("in textRow! rows:",rows)
+    #print("in textRow! rows:",rows)
     for i in range(rows):
         cy = y0 + i *unitInc
-        print("creating texts!")
+        #print("creating texts!")
         canvas.create_text(cx,cy,text=texts[i],font="Helvetica 15 bold",fill=color)
 
 ###########

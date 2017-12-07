@@ -1,6 +1,7 @@
 # ColorfulNote
 
 ColorfulNote is an desktop app that converts music into art in real time. It is a 15112F17 Term Project.
+Youtube Demo https://youtu.be/OYkXdU1bo1c
 
 ## Getting Started
 

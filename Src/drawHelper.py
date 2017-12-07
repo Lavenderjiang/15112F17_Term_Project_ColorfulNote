@@ -182,7 +182,7 @@ def drawCircleRingOfCircles(data,canvas,zeroX,zeroY,innerR,outerR,colours,startA
         #coordinate offset for different center
 
         item1 = canvas.create_oval(cx-dressingR,cy-dressingR, dressingR+cx,dressingR+cy,fill=outerColor)
-        print("item1",item1)
+        #print("item1",item1)
         item2 = canvas.create_oval(cx-toppingR,cy-toppingR, toppingR+cx,toppingR+cy,fill=midColor)
         item3 = drawCircleRing(canvas,cx,cy,r/3,r,innerColor,bgColor)
         add = [item1,item2]
