@@ -155,8 +155,6 @@ def drawCircleRingOfCircles(data,canvas,zeroX,zeroY,innerR,outerR,colours,startA
     innerColor, midColor, outerColor, bgColor = colours[0],colours[1],colours[2],colours[3]
     r = (outerR - innerR) / 2
     midR = (outerR + innerR) / 2
-    #print("Here's wavy R info!")
-    #print("r of circle",r,"r of ring size",midR)
     halfAngle = solveAngle(midR,midR,r)
     fullAngle = 2 * halfAngle
     angleWithSpace = fullAngle + spacing * fullAngle

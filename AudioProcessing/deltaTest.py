@@ -110,12 +110,12 @@ def convertToArea(stren):
     '''
     
     #sound with volume below threshold is considered noise 
-    if stren<InputThreshold: return 5
+    if stren<InputThreshold: return None
     #generate random value in specified range
-    elif stren<30: res = randint(5,30)
-    elif stren<50: res = randint(30,50)
-    elif stren<60: res = randint(50,100)
-    else: res = randint(100,150)
+    elif stren<30: res = stren*0.8
+    elif stren<50: res = stren
+    elif stren<60: res = stren*1.2
+    else: res = stren*1.2
     return res
 
 def saveImage(canvas,data,dirPath):
@@ -380,7 +380,7 @@ def createTimerFired(canvas,data):
 
         stream = data.stream
         rawData = stream.read(CHUNK,exception_on_overflow = False)
-        data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)        
+        data.freq, data.pitch, data.stren = rawAnalysis(data,rawData)        
 
         if data.stren > InputThreshold:
             data.dance = True
@@ -547,23 +547,124 @@ def analysisTimerFired(data):
     stream = data.stream
     rawData = stream.read(CHUNK,exception_on_overflow = False)
     data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)
-    data.freq = np.asscalar(data.freq)
+    updateAnaCycle(data)
+    if data.curTime%5 == 4:
+        #print(data.anaCycle.stren)
+        avgStren = avg(data.anaCycle.stren)
+        #print("avg!!!",avgStren)
+        if avgStren > InputThreshold:
+            cyclePitchAnalysis(data)
+    data.curTime += 1
+
+def drawGrid(canvas,data,x0,y0,x1,y1,rows,cols,color,start=8,end=8):
+    #from C4 to G5 
+    colors = []
+    freqs = [                                    208, 220, 233, 247,
+             262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
+             523, 554, 587, 622, 659, 698, 740, 784, 196]
+    for freq in freqs:
+        rgb = freqToColour(freq)
+        hexColor = rgbToHex(rgb)
+        colors.append(hexColor)
+
+    dx = (x1 - x0) / cols
+    dy = (y1 - y0) / rows
+
+    count = 0
+    lastRow = False
+
+    for r in range(rows):
+        print("r",r)
+        if r == rows -1: lastRow = True
+        curY = y0 + r * dy
+        for c in range(cols):
+            curX = x0 + c*dx
+            if count < start-1 or end < 1:
+                color,thickness = None,0 
+            else:
+                print("colorIndex",r*cols+c-(start-1))
+                i = r*cols+c-start
+                color = colors[i]
+                thickness = 3
+                canvas.create_rectangle(curX,curY,curX+dx,curY+dy,fill=color,width=thickness)
+                note = fToNote(freqs[i])
+                canvas.create_text(curX+dx/2,curY+dy/2,text=note,font="Helvetica 17 bold")
+            count += 1
+            print("end",end)
+            if lastRow: end -= 1
 
 def analysisRedrawAll(canvas, data):
-    # draw in canvas
-    x = data.width/2
-    y = freqToCanvasY(data.height,data.freq)
-    print("y",y)
-    r = convertToArea(data.stren)
-    canvas.create_oval(x-r,y-r,x+r,y+r, fill="purple", width=0)
-    canvas.create_text(data.width*2/3,data.height*3/4,text = fToNote(data.freq))
-    canvas.create_text(data.width*2/3,data.height*3/4-20,text = str(data.freq))
+    canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
+    drawGrid(canvas,data,data.width/4-40,data.height/3-70,3*data.width/4+40,data.height/1.5-70,3,12,"white")
+    #canvas.create_rectangle(0,data.height*(1-1/5),data.width,data.height,fill=None,width=3)
+    data.oldX = 0
+    data.oldR = 0
+    cy = 9/10*data.height
+    r = 10
+    #data.noteCircle = canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill="black",width=3)
     data.readyForDeltaDraw = True
+
+
+
+def deltaDrawCircle(canvas,data):
+    #print("delta drawing!")
+    tScale = 10
+    dx = 10
+    basef = 196
+    topf = 784
+    color = curFreqToHex(data.freq)
+    r = convertToArea(data.stren)
+    if r != None:
+        cx = data.oldX + data.oldR + r
+        cy = data.height - (data.freq % basef) * (data.height-data.height/5)/(topf-basef)
+        #cx = data.curTime * tScale % data.width
+        #cy = 9/10*data.height
+        canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color,width=3)
+        data.oldX, data.oldR = cx, r
+        if cx+r >= data.width:
+            print("overflow!")
+            canvas.create_rectangle(0,data.height*(1-1/3)-50,data.width,data.height,fill="#FFEE93",width=0)
+            data.oldX = 0
+
+
+    # canvas.coords(data.noteCircle,(cx-r,cy-r,cx+r,cy+r))
+    # canvas.itemconfig(data.noteCircle,fill=color)
+
+def deltaDrawRing(canvas,data):
+    if data.addFlag == True:
+        print("colors",data.colors)
+
+        zeroX,zeroY = 0,0
+        innerR = 200
+        outerR = 270
+        offset = 10
+        canvas.create_oval(zeroX-outerR-offset,zeroY-outerR-offset,
+                           zeroX+outerR+offset,zeroY+outerR+offset,
+                           fill = "#FFEE93",width=0)
+
+        if data.ringType == "wavy":
+            ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "pure":
+            ring = pureRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "bead":
+            ring = colorfulBeads(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+                
+        
+        data.ring = ring
+        ring.draw(data)
+
+        data.addFlag = False
 
 def analysisDeltaDraw(canvas, data):
     bindButton(data.homeButton,data)
+    deltaDrawCircle(canvas,data)
+    deltaDrawRing(canvas,data)
 
 def analysisMousePressed(event,data):
+    data.mouseX = event.x
+    data.mouseY = event.y
+
+def analysisKeyPressed(event,data):
     pass
 ################################################################################
 ############################# Main Function ####################################

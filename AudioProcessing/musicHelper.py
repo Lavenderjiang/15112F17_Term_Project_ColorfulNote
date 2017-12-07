@@ -58,12 +58,13 @@ def freqToColour(f):
            Link: http://www.flutopedia.com/sound_color.htm
         2) Algorithm for converting wavelength to color comes from StackOverflow User Tarc.
            Link: https://stackoverflow.com/questions/1472514/convert-light-frequency-to-rgb
-        3) Frequency below 262Hz (Middle C) is mapped to black.
+        3) Frequency below 196Hz (G3) is mapped to black
     '''
     scale = 2**40
     #special case
-    if f < 262: return (230,230,250)
+    if f < 196: return (230,230,250)
     if f < 350: scale = 2**41
+    if f > 739: scale = 2**39
 
     # wavelength = speedOfLight / frequency
     f = f * scale
@@ -214,3 +215,8 @@ def testConvertToInc():
     assert(convertToInc(40)==10)
     assert(convertToInc(65)==20)
     print("passed!")
+
+def curFreqToHex(f):
+    rgb = freqToColour(f)
+    hexColor = rgbToHex(rgb)
+    return hexColor
