@@ -574,7 +574,7 @@ def analysisTimerFired(data):
 def drawGrid(canvas,data,x0,y0,x1,y1,rows,cols,color,start=8,end=8):
     #from C4 to G5 
     colors = []
-    freqs = [                                    208, 220, 233, 247,
+    freqs = [                                        208, 220, 233, 247,
              262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
              523, 554, 587, 622, 659, 698, 740, 784, 196]
     for freq in freqs:
@@ -638,7 +638,7 @@ def deltaDrawCircle(canvas,data):
         data.oldX, data.oldR = cx, r
         if cx+r >= data.width:
             print("overflow!")
-            canvas.create_rectangle(0,data.height*(1-1/3)-50,data.width,data.height,fill="#FFEE93",width=0)
+            canvas.create_rectangle(0,data.height*(1-1/3)-50,data.width+30,data.height,fill="#FFEE93",width=0)
             data.oldX = 0
 
 

@@ -1,4 +1,101 @@
 {% load static %}
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/index.css' %}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+</head>
 
 
-<img src = "/static/images/share.png" />
+<body>
+    <div class="site-wrapper">
+        <div class="site-wrapper-inner">
+            <div class="cover-container">
+                <div class="inner conver">
+    <ul>
+  <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+  <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+  <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+  <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+  <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+   <li>&#9833;</li>
+  <li>&#9834;</li>
+  <li>&#9835;</li>
+  <li>&#9836;</li>
+  
+  
+</ul>
+
+<img class="center" src="https://image.ibb.co/c0ad8G/colorful_2.png" alt="colorful_2" border="0">
+</div>
+</div>
+
+<div class="container">
+    <div class="row">
+        {% for image in images %}
+        <div class="col-md-4">
+            <div class="image-post">
+                <div class="image-area">
+                    <img class="image" src='/static/gallery/{{image}}'/>
+                </div>
+            </div>
+        </div>
+        
+
+
+        {% endfor %}
+    </div>
+
+</div>
+
+
+
+</div>
+</div>
+
+
+<!-- <div class="container">
+    <div class="row">
+        {% for image in images %}
+        <div class="col-md-4">
+            <div class="image-post">
+                <div class="image-area">
+                    <img class="image" src='/static/gallery/{{image}}'/>
+                </div>
+            </div>
+        </div>
+        
+
+
+        {% endfor %}
+    </div>
+
+    <div class="mastfoot">
+      <div class="inner">
+        <p>A Hack112F17 project by team 404NotFound.</p>
+    </div>
+</div>
+</div> -->
+
+<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="{% static 'js/index.js' %}"></script>
+
+</body>
+</html>
+
+<!-- <img src = "/static/images/share.png" /> -->

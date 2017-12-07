@@ -13,11 +13,12 @@ def saveImage(canvas,data,dirPath):
     path = os.path.join(dirPath,"new.png")
     wd = os.getcwd()
     print("***********wd:",wd)
-    sharePath = os.path.join(wd,"shareMode/share.png")
+    sharePath = os.path.join(wd,"shareMode/static/images/share.png")
     print("sharePath",sharePath)
     print("**********************")
 
     img = ImageGrab.grab().crop((x+500,y+50,x1,y1))
+    data.userImage = img
     img.save(path)
     img.save(sharePath)
 
@@ -89,8 +90,11 @@ class shareButton(button):
     def onclick(self,data):
         if data.mouseX > self.minx and data.mouseX < self.maxx \
         and data.mouseY > self.miny and data.mouseY < self.maxy:
+            name = "%d.png"%(data.curTime)
+            path = os.path.join(os.getcwd(),"shareMode/static/gallery/"+name)
+            data.userImage.save(path)
             if data.shared == True: return
-            webbrowser.open("http://google.com")
+            webbrowser.open("http://127.0.0.1:8000/")
             data.shared = True
 
 class stopButton(button):

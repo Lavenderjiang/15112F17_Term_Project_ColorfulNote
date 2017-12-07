@@ -1,0 +1,104 @@
+body { background: #FFee93 !important;
+    font-family: 'Raleway' !important;}
+
+
+.image-post {
+    background-color: #d3d3d3;
+}
+
+.image {
+    width: 100%;
+    height: 250px;
+}
+
+.center{
+    display: block;
+    margin: 0 auto;
+}
+
+.cover-container {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+
+ul li {
+  display: block;
+  float: left;
+  font-size: 2em;
+  color: #44d9e6;
+  text-shadow: 0 -1px 0 white, 0 1px 0 black;
+}
+
+.anim {
+  -webkit-animation: music 1s ease-in-out both infinite;
+}
+
+@-webkit-keyframes music {
+  0%,
+  100% {
+    transform: translate3d(0, -10px, 0);
+    -webkit-transform: translate3d(0, -10px, 0);
+  }
+  50% {
+    transform: translate3d(0, 10px, 0);
+    -webkit-transform: translate3d(0, 10px, 0);
+  }
+}
+
+
+.site-wrapper {
+  display: table;
+  width: 100%;
+  height: 100%; /* For at least Firefox */
+  min-height: 100%;
+  -webkit-box-shadow: inset 0 0 100px rgba(0,0,0,.5);
+          box-shadow: inset 0 0 100px rgba(0,0,0,.5);
+}
+.site-wrapper-inner {
+  display: table-cell;
+  vertical-align: top;
+}
+
+.inner {
+  padding: 30px;
+}
+
+.mastfoot {
+  color: rgba(255,255,255,.5);
+}
+
+
+/* position fix */
+
+@media (min-width: 768px) {
+  /* Pull out the header and footer */
+  .masthead {
+    position: fixed;
+    top: 0;
+  }
+  .mastfoot {
+    position: fixed;
+    bottom: 0;
+    color:#44d9e6;
+  }
+  /* Start the vertical centering */
+  .site-wrapper-inner {
+    vertical-align: middle;
+  }
+  /* Handle the widths */
+  .masthead,
+  .mastfoot,
+  .cover-container {
+    width: 100%; /* Must be percentage or pixels for horizontal alignment */
+  }
+}
+
+@media (min-width: 992px) {
+  .masthead,
+  .mastfoot,
+  .cover-container {
+    width: 700px;
+  }
+}
+
