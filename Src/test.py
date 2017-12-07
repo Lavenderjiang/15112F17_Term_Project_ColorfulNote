@@ -8,12 +8,9 @@ import wave
 import struct
 fft = np.fft.fft
     
-    
-
 #from IPython import get_ipython
 #get_ipython().run_line_magic('matplotlib', 'tk')
 #%matplotlib tk #display separate window
-
 
 def play(file):
     CHUNK = 1024 #bytes
@@ -78,7 +75,7 @@ def record(outputFile):
     wf.writeframes(b''.join(frames))
     wf.close()
 
-def test():
+def debugPlot():
     #plt.ion()
     fig, (ax,ax2) = plt.subplots(2, figsize=(15, 7)) #two figures
     
@@ -100,7 +97,9 @@ def test():
 
     # variable for plotting
     x = np.arange(0, 2 * CHUNK, 2)
+    print(x)
     x_fft = np.linspace(0,RATE,CHUNK)
+    print("lenx:",len(x_fft))
     
     # create a line object with random data
     line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
@@ -114,6 +113,8 @@ def test():
     ax.set_xlim(0, 2 * CHUNK)
     plt.setp(ax, xticks=[0, CHUNK, 2 * CHUNK], yticks=[0, 128, 255])
 
+    ax2.set_xlabel('freq')
+    ax2.set_ylabel('volume')
     ax2.set_xlim(20,RATE/20) #at 0 line is discontinuous
     
     plt.show(block=False)
@@ -123,9 +124,7 @@ def test():
     while True:
         data = stream.read(CHUNK)
         data_int = struct.unpack(str(2*CHUNK)+'B',data)
-        #print(data_int)
         data_np = np.array(data_int, dtype='b')[::2] 
-        #print(data_np)
         line.set_ydata(data_np)
         #fft
         y_fft = fft(data_int)
@@ -134,53 +133,7 @@ def test():
         try:
             fig.canvas.draw()
             fig.canvas.flush_events()
-            #plt.pause(0.1)
             
         except:
             print('stream stopped')
             break
-
-
-def offset(t):
-    res = []
-    for i in t:
-        i = i%256
-        res.append(i)
-    return tuple(res)
-
-def testplot():
-    CHUNK = 1024 * 4
-    FORMAT = pyaudio.paInt16 #16-BYTE
-    CHANNELS = 1 #MONOSOUND
-    RATE = 44100 #44.1 kHz
-
-
-    p = pyaudio.PyAudio()
-
-    stream = p.open(
-        format = FORMAT,
-        channels = CHANNELS,
-        rate = RATE,
-        input = True,
-        output = True,
-        frames_per_buffer=CHUNK
-    )
-    
-    data = stream.read(CHUNK)
-    
-    print(data)
-
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 

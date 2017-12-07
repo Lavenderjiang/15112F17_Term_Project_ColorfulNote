@@ -5,8 +5,8 @@
 ################################################################################
 ############################### Imports ########################################
 ################################################################################
-import drawHelper
-import musicHelper
+from drawHelper import *
+from musicHelper import *
 import pyaudio
 import matplotlib
 matplotlib.use('TkAgg')
@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from tkinter import *
+from GUIclasses import *
 import struct
 import numpy as np
 from math import log2
@@ -24,10 +25,12 @@ from random import randint
 from ast import literal_eval
 from PIL import Image
 from PIL import ImageGrab
+from tkinter import filedialog
+import webbrowser
+import os
 
 fft = np.fft.fft
 np.set_printoptions(threshold=np.nan) #print full np array
-
 
 
 ################################################################################
@@ -39,7 +42,7 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1 #built-in microphone is monotone
 RATE = 16000
 
-InputThreshold = 10
+InputThreshold = 6
 
 ################################################################################
 ############################### Helpers ########################################
@@ -50,6 +53,15 @@ def roundHalfUp(d):
     # Round to nearest with ties going away from zero.
     rounding = decimal.ROUND_HALF_UP
     return int(decimal.Decimal(d).to_integral_value(rounding=rounding))
+
+def debugPrint(data):
+    ringList = data.rings
+    for ring in ringList:
+        if type(ring)==firstCircle: continue
+        print(ring.innerR,ring.outerR,type(ring).__name__)
+
+def avg(l):
+    return sum(l)/len(l)
 
 def fToNote(f):
     '''
@@ -98,14 +110,14 @@ def convertToArea(stren):
     '''
     
     #sound with volume below threshold is considered noise 
-    if stren<InputThreshold: return 5
+    if stren<InputThreshold: return None
     #generate random value in specified range
-    elif stren<30: res = randint(5,30)
-    elif stren<50: res = randint(30,50)
-    elif stren<60: res = randint(50,100)
-    else: res = randint(100,150)
+    elif stren<30: res = stren*0.8
+    elif stren<50: res = stren
+    elif stren<60: res = stren*1.2
+    else: res = stren*1.2
     return res
-    
+
 def testAreaConversion():
     print(convertToArea(42.7)) #('low',5)
     print(convertToArea(68.9)) #('high', 20)
@@ -180,54 +192,26 @@ def testFreqToY():
     print(freqToCanvasY(400,400)) #200
     print(freqToCanvasY(400,700)) #50
 
-class button(object):
-    ''' 
-    Class for switch-mode button.
 
-    @param x: horizontal coord of the center of the button
-    @param y: vertical coord of the center of the button (0 on top)
-    @param mode: string of the name of the mode to switch to
-    @param display: the string to display on button
-
-    Note:
-        Button size can be changed by tweaking xs and yxRatio.
-        When clicked, the system time is reset.
-    
-    Usage:
-        To activate button, call with bindButton().
+def cyclePitchAnalysis(data):
     '''
-    def __init__(self,x,y,mode,display="button"):
-        xs = 40
-        yxRatio = 4
-        ys = xs/yxRatio
-        
-        self.cx = x
-        self.cy = y
-        self.text = display
-        self.minx = x - xs
-        self.miny = y - ys
-        self.maxx = x + xs
-        self.maxy = y + ys
-        self.mode = mode
+    Determine the color from the overall pitch and density from changes in notes.
 
-    def draw(self,canvas):
-        color = "blue"
-        thickness = 2
-        canvas.create_rectangle(self.minx,self.miny,self.maxx,self.maxy,
-                                fill=color,width=2)
-        canvas.create_text(self.cx,self.cy,text=self.text)
-
-    def onclick(self,data):
-        #switch mode and reset time
-        if data.mouseX > self.minx and data.mouseX < self.maxx \
-        and data.mouseY > self.miny and data.mouseY < self.maxy:
-            print("************\nYou Clicked!\n***********")
-            data.mode = self.mode 
-            data.curTime = 0 
-
-def bindButton(button,data,canvas):
-    button.draw(canvas)
-    button.onclick(data)
+    @param pitches: five notes in the analysis cycle, written in English notation
+    @return: ringType, a list of color, and inner&outer radius
+    '''
+    
+    if len(data.rings) == 0:
+        data.ringType = "pure" #one color
+    else:
+        #update data.ringType and data.diffList
+        NoteListToType(data.anaCycle.pitch,data)
+    #update data.incR
+    strenToIncR(avg(data.anaCycle.stren),data)
+    #update data.colors
+    colorListGen(data)
+    #notify redrawAll
+    data.addFlag = True
 
 def updateAnaCycle(data):
     '''
@@ -242,83 +226,31 @@ def updateAnaCycle(data):
         data.anaCycle.stren.append(data.stren)
         data.anaCycle.freq.append(data.freq)
         data.anaCycle.pitch.append(data.pitch) 
-        #print(data.anaCycle.pitch,data.anaCycle.stren)
-
-################################################################################
-############################### Ring Class #####################################
-################################################################################
-class firstCircle(object):
-    def __init__(self,canvas,cx,cy,color,radius):
-        self.canvas=canvas
-        self.color = color
-        self.cx = cx
-        self.cy = cy
-        self.r = radius
-        self.angle = 0
-
-    def draw(self):
-        cx = self.cx
-        cy = self.cy
-        r=self.r
-        self.canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=self.color)
-
-
-class musicRing(object):
-    def __init__(self,canvas,zeroX,zeroY,innerR,outerR,colors,startAngle=0):
-        self.canvas = canvas
-        self.zeroX = zeroX
-        self.zeroY = zeroY
-        self.innerR = innerR
-        self.outerR = outerR
-        self.unitR = (outerR - innerR)/4
-        self.colors = colors
-        self.angle = startAngle
-
-    def scale(self,factor):
-        '''change inner and outerR'''
-        pass
-
-    def translate(self,coord):
-        '''move center'''
-        pass
-
-class wavyRing(musicRing):
-
-    def draw(self):
-        drawHelper.drawCircleRingOfCircles(self.canvas,self.zeroX,self.zeroY,
-                                self.innerR,self.innerR + 2*self.unitR,
-                                self.colors,self.angle)
-
-class colorfulBeads(musicRing):
-    '''
-    Has most pitch changes in an analysis cycle
-    '''
-    def draw(self):
-        drawHelper.drawColorfulBeads(self.canvas,self.zeroX,self.zeroY,
-                          self.innerR,self.outerR,self.colors,self.angle)
-
-
-class pureRing(musicRing):
-
-    def draw(self):
-        drawHelper.drawPureRing(self.canvas,self.zeroX,self.zeroY,
-                     self.innerR,self.outerR,self.colors,self.angle)
 
 ################################################################################
 ############################### Tk Func ########################################
 ################################################################################
-
 def init(data):
+
     data.curTime = 0
     data.ringCount = 0
-    data.mode = "home"
-    data.mouseX = 0
-    data.mouseY = 0
+    data.radii=[]
+    data.firstCircle = False
+    data.oldR = 0
+    data.colors = []
+    data.rings=[]
+    data.ringType=""
+    data.incR=0
+
+    
+    data.diffList=[]
+    class Struct(object): pass
+    data.anaCycle = Struct()
     data.freq = 0
     data.pitch = 0
     data.stren = 0
     data.pOffset = 157
-    #data.logo=[]
+
     ########## matplotlib data ######## 
     fig = plt.figure()
     ax = plt.subplot()
@@ -326,24 +258,32 @@ def init(data):
     line_fft, = ax.plot(x_fft, np.random.rand(CHUNK), '-', lw=2)
     data.line_fft = line_fft
     ####################only for createMode###########
-    data.radii=[]
-    data.firstCircle = False
-    data.oldR = 0
-    data.colors = []
-
-    data.rings=[]
-    data.ringType=""
-    data.incR=0
-    data.diffList=[]
-
-    data.addFlag=False
-    data.bgColor="black"
-    data.logo = data.image = PhotoImage(file="logo.gif")
-
-    class Struct(object): pass
-    data.anaCycle = Struct()
-    data.homeButton = button(data.width/4,data.height/4,"home","home")
     
+
+    data.bgColor="black"
+
+    data.logo = PhotoImage(file="logo.gif")
+    data.ex1 = PhotoImage(file="imagine.gif")
+    data.ex2 = PhotoImage(file="libertango.gif")
+
+    dancingNoteInit(data)
+    menuInit(data)
+
+    data.homeButton = button(data.width/4,data.height/4,"home","home")
+    data.saveButton = saveButton(data.width/4,data.height/5,"save","save")
+    
+    #status init
+    data.mode = "home"
+    data.saved = False
+    data.shared = False
+    data.stop = False
+    data.fullFlag = False
+    data.addFlag=False
+    data.mouseX = 0
+    data.mouseY = 0
+
+    data.items = []
+
 
 def mousePressed(event, data):
     # use event.x and event.y
@@ -355,12 +295,19 @@ def mousePressed(event, data):
 def keyPressed(event, data):
     # use event.char and event.keysym
     if data.mode == "home": homeKeyPressed(event,data)
+    if data.mode == "create": createKeyPressed(event,data)
     if data.mode == "analysis": analysisKeyPressed(event,data)
 
 def timerFired(canvas,data):
     if data.mode == "home": homeTimerFired(data)
     if data.mode == "analysis": analysisTimerFired(data)
     if data.mode == "create": createTimerFired(canvas,data)
+
+def deltaDraw(canvas,data):
+    if data.mode == "home": homeDeltaDraw(canvas,data)
+    if data.mode == "create": createDeltaDraw(canvas,data)
+    if data.mode == "analysis": analysisDeltaDraw(canvas,data)
+    if data.mode == "help": helpDeltaDraw(canvas,data)
 
 
 def redrawAll(canvas,data):
@@ -385,39 +332,28 @@ def homeMousePressed(event,data):
 def homeKeyPressed(event, data):
     pass
 
+def homeDeltaDraw(canvas, data):
+    pass
 
 def homeRedrawAll(canvas,data):
-    #print("curXY!",data.mouseX,data.mouseY)
+    #filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
+    
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
     gap = 30
     create_button = button(data.width/2,data.height*2/3 - 2*gap,"create","Create!")
-    bindButton(create_button,data,canvas)
+    bindButton(create_button,data)
     about_button = button(data.width/2,data.height*2/3 - gap,"help","About")
-    bindButton(about_button,data,canvas)
+    bindButton(about_button,data)
     analysis_button = button(data.width/2,data.height*2/3,"analysis","Analysis")
-    bindButton(analysis_button,data,canvas)
-    canvas.create_image(data.width/2, data.height/3,  image=data.image)
+    bindButton(analysis_button,data)
+    canvas.create_image(data.width/2, data.height/3,  image=data.logo)
+    data.readyForDeltaDraw = True
     
-    #b3 = button(data.width/2,data.height*2/3 - gap*2)
-
-    
-
-    #logo = PhotoImage(file="logo.gif")
-    #canvas.create_image(50,100,image=data.logo,anchor=NW)
-    #canvas.create_image(data.width/2,data.height/2,image=logo)
-    #canvas.create_image(data.width/2,data.height/2, image=logo)
 
 ###############################################################################
 ############################### Create Mode ####################################
 ################################################################################
-def debugPrint(data):
-    ringList = data.rings
-    for ring in ringList:
-        if type(ring)==firstCircle: continue
-        print(ring.innerR,ring.outerR,type(ring).__name__)
 
-def avg(l):
-    return sum(l)/len(l)
 
 def createTimerFired(canvas,data):
     '''
@@ -432,55 +368,48 @@ def createTimerFired(canvas,data):
     '''
     
     #Receive and analyse audio data
-    stream = data.stream
-    rawData = stream.read(CHUNK,exception_on_overflow = False)
-    data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)        
+    if data.stop == False:
 
-    for ring in data.rings:
-        ring.angle += math.pi/6
+        stream = data.stream
+        rawData = stream.read(CHUNK,exception_on_overflow = False)
+        data.freq, data.pitch, data.stren = rawAnalysis(data,rawData)        
 
-    #do not draw ring for backgrond noise
-    updateAnaCycle(data)
-    if data.curTime%5 == 4:
-        #print(data.anaCycle.stren)
-        avgStren = avg(data.anaCycle.stren)
-        #print("avg!!!",avgStren)
-        if avgStren > InputThreshold:
-            cyclePitchAnalysis(data)
-            #debugPrint(data)
-    
-    data.curTime += 1 
+        if data.stren > InputThreshold:
+            data.dance = True
+        else:
+            data.dance = False
+        #for ring in data.rings:
+            #ring.angle += math.pi/6
 
-def cyclePitchAnalysis(data):
-    '''
-    Determine the color from the overall pitch and density from changes in notes.
+        #do not draw ring for backgrond noise
+        updateAnaCycle(data)
+        if data.curTime%5 == 4:
+            #print(data.anaCycle.stren)
+            avgStren = avg(data.anaCycle.stren)
+            #print("avg!!!",avgStren)
+            if avgStren > InputThreshold:
+                cyclePitchAnalysis(data)
+                #debugPrint(data)
 
-    @param pitches: five notes in the analysis cycle, written in English notation
-    @return: ringType, a list of color, and inner&outer radius
-    '''
-    if len(data.rings) == 0:
-        data.ringType = "pure" #one color
-    else:
-        #update data.ringType and data.diffList
-        musicHelper.NoteListToType(data.anaCycle.pitch,data)
-    #update data.incR
-    musicHelper.strenToIncR(avg(data.anaCycle.stren),data)
-    #update data.colors
-    musicHelper.colorListGen(data)
-    #notify redrawAll
-    data.addFlag = True
+        verticalJump(data)
+        
+        data.curTime += 1 
 
+def createDeltaDraw(canvas, data):
+ 
+    canvas.coords(data.dancingNote,(data.width/12,data.dancingHeight))
 
-def createRedrawAll(canvas,data):
-    # b1 = button(data.width/4,data.height/4,"home","home")
-    # bindButton(b1,data,canvas)
-    bindButton(data.homeButton,data,canvas)
-
-
-    if data.addFlag == True:
-        zeroX,zeroY = data.width/2,data.height/2
+    if data.addFlag == True and data.stop==False:
+        offsetX, offsetY = data.width/6-100, 0
+        zeroX,zeroY = data.width/2 + offsetX, data.height/2 + offsetY
         innerR = data.oldR
         outerR = data.oldR + data.incR
+
+        #check if out of bound
+        if zeroX + outerR > data.width or zeroX - outerR < data.width/6 or\
+           zeroY + outerR > data.height or zeroY - outerR < 0:
+           data.fullFlag = True
+
         if len(data.rings)==0:
             ring = firstCircle(canvas,zeroX,zeroY,data.colors[0],data.incR)
             #data.oldR = data.incR
@@ -491,69 +420,274 @@ def createRedrawAll(canvas,data):
         elif data.ringType == "wavy":
             ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)        
         data.oldR = data.oldR+data.incR
-        print("old",data.oldR,"inc",data.incR)
-        print("##############################")
+
+
         data.rings.append(ring)
+        ring.draw(data)
+
         data.addFlag = False
+
+    if data.fullFlag == True:
+        data.fullFlag = False
+        scale = 0.6
+        threshold = 1.5
+        data.oldR = data.oldR * scale
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.outerR < data.rings[0].r * threshold :
+                ring.delete = True
+        data.readyForDeltaDraw = False
+
+def createRedrawAll(canvas,data):
+    data.bgItem = canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
+
 
     #reverse to avoid hiding of the previous rings
     for ring in data.rings[::-1]:
-        ring.draw()
+        ring.draw(data)
 
-    # savename = 'yourImage'
-    # ImageGrab.grab((0,0,data.width,data.height)).save(savename + '.jpg')
+    canvas.create_rectangle(0,0,data.width/6,data.height,fill="#44d9e6",width=3)
+    
+    data.createMenu.drawMenu()
+    texts = ["Sing something to begin :)",
+             "Press ↑ to zoom in!",
+             "Press ↓ to zoon out!",
+             "Press w,a,s,d to move!"]
+    textRow(canvas,0,data.width/6,2*data.height/3-40,data.height-150,
+            texts)
+
+    canvas.create_rectangle(0,data.height-150,data.width/6,data.height,fill="#44d9e6",width=3)
+
+    data.dancingNote = canvas.create_image(data.width/12, data.dancingHeight, image=data.note)
+
+    data.readyForDeltaDraw = True
+
 def createMousePressed(event,data):
     data.mouseX = event.x
     data.mouseY = event.y
 
+def createKeyPressed(event,data):
+    if event.keysym == "Up":
+        scale = 1.1
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.innerR > data.width:
+                ring.delete = True
+        data.readyForDeltaDraw = False
+
+    if event.keysym == "Down":
+        scale = 0.9
+        for ring in data.rings:
+            if type(ring)==firstCircle: continue
+            ring.innerR = ring.innerR * scale
+            ring.outerR = ring.outerR * scale
+            if ring.innerR < data.rings[0].r:
+                ring.delete = True
+        data.readyForDeltaDraw = False
+
+    if event.keysym == "w":
+        step = -20
+        for ring in data.rings:
+            ring.zeroY += step
+        data.readyForDeltaDraw = False
+
+    if event.keysym == "s":
+        step = 20
+        for ring in data.rings:
+            ring.zeroY += step
+        data.readyForDeltaDraw = False
+
+    if event.keysym == "a":
+        step = -20
+        for ring in data.rings:
+            ring.zeroX += step
+        data.readyForDeltaDraw = False
+        
+    if event.keysym == "d":
+        step = 20
+        for ring in data.rings:
+            ring.zeroX += step
+        data.readyForDeltaDraw = False
+
 ################################################################################
 ############################### Help Mode ######################################
 ################################################################################
-
 
 def helpMousePressed(event,data):
     data.mouseX = event.x
     data.mouseY = event.y
 
 def helpRedrawAll(canvas,data):
+    offset = 30
     canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
-    canvas.create_text(data.width/2,data.height/2,text="HELP!!!!")
-    bindButton(data.homeButton,data,canvas)
-    # b1 = button(data.width/4,data.height/4,"home","home")
-    # bindButton(b1,data,canvas)
+    canvas.create_image(offset,offset,image=data.ex1)
+    canvas.create_image(data.width-offset,data.height-offset,image=data.ex2)
 
+    left = data.width/5
+    top = data.height/5 
+    right = data.width -left
+    down = data.height - top
+    canvas.create_rectangle(left,top,right,down,fill="#44d9e6",width=3)
+    texts = ["ColorfulNote turn your music into art!",
+             "The image on top left corner is Lennon's IMAGINE",
+             "The image on bottom right corner is LIBERTANGO",
+             "Now you see the music :)",
+             "To start painting with song,",
+             "Go to CREATE mode!",
+             "If you wonder how ColorfulNote works",
+             "Go to ANALYSIS mode!",
+             "Have fun!"]
+    textRow(canvas,left,right,top+50,down,texts,"#d64a9c")
+    #canvas.create_text(data.width/2,data.height/2,text="HELP!!!!")
+    data.readyForDeltaDraw = True
+    #b1 = button(data.width/4,data.height/4,"home","home")
+    
 
+def helpDeltaDraw(canvas, data):
+    bindButton(data.homeButton,data)
 
 ################################################################################
 ############################# Analysis Mode ####################################
 ################################################################################
 
-
 def analysisTimerFired(data):
     stream = data.stream
     rawData = stream.read(CHUNK,exception_on_overflow = False)
     data.freq,data.pitch,data.stren=rawAnalysis(data,rawData)
-    data.freq = np.asscalar(data.freq)
+    updateAnaCycle(data)
+    if data.curTime%5 == 4:
+        #print(data.anaCycle.stren)
+        avgStren = avg(data.anaCycle.stren)
+        #print("avg!!!",avgStren)
+        if avgStren > InputThreshold:
+            cyclePitchAnalysis(data)
+    data.curTime += 1
+
+def drawGrid(canvas,data,x0,y0,x1,y1,rows,cols,color,start=8,end=8):
+    #from C4 to G5 
+    colors = []
+    freqs = [                                    208, 220, 233, 247,
+             262, 277, 294, 311, 330, 349, 370, 392, 415, 440, 466, 494,
+             523, 554, 587, 622, 659, 698, 740, 784, 196]
+    for freq in freqs:
+        rgb = freqToColour(freq)
+        hexColor = rgbToHex(rgb)
+        colors.append(hexColor)
+
+    dx = (x1 - x0) / cols
+    dy = (y1 - y0) / rows
+
+    count = 0
+    lastRow = False
+
+    for r in range(rows):
+        print("r",r)
+        if r == rows -1: lastRow = True
+        curY = y0 + r * dy
+        for c in range(cols):
+            curX = x0 + c*dx
+            if count < start-1 or end < 1:
+                color,thickness = None,0 
+            else:
+                print("colorIndex",r*cols+c-(start-1))
+                i = r*cols+c-start
+                color = colors[i]
+                thickness = 3
+                canvas.create_rectangle(curX,curY,curX+dx,curY+dy,fill=color,width=thickness)
+                note = fToNote(freqs[i])
+                canvas.create_text(curX+dx/2,curY+dy/2,text=note,font="Helvetica 17 bold")
+            count += 1
+            print("end",end)
+            if lastRow: end -= 1
 
 def analysisRedrawAll(canvas, data):
-    # draw in canvas
-    x = data.width/2
-    y = freqToCanvasY(data.height,data.freq)
-    print("y",y)
+    canvas.create_rectangle(0,0,data.width,data.height,fill="#FFEE93",width=0)
+    drawGrid(canvas,data,data.width/4-40,data.height/3-70,3*data.width/4+40,data.height/1.5-70,3,12,"white")
+    #canvas.create_rectangle(0,data.height*(1-1/5),data.width,data.height,fill=None,width=3)
+    data.oldX = 0
+    data.oldR = 0
+    cy = 9/10*data.height
+    r = 10
+    #data.noteCircle = canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill="black",width=3)
+    data.readyForDeltaDraw = True
+
+
+
+def deltaDrawCircle(canvas,data):
+    #print("delta drawing!")
+    tScale = 10
+    dx = 10
+    basef = 196
+    topf = 784
+    color = curFreqToHex(data.freq)
     r = convertToArea(data.stren)
-    canvas.create_oval(x-r,y-r,x+r,y+r, fill="purple", width=0)
-    canvas.create_text(data.width*2/3,data.height*3/4,text = fToNote(data.freq))
-    canvas.create_text(data.width*2/3,data.height*3/4-20,text = str(data.freq))
-    b1 = button(data.width/4,data.height/4,"home","home")
-    bindButton(b1,data,canvas)
+    if r != None:
+        cx = data.oldX + data.oldR + r
+        cy = data.height - (data.freq % basef) * (data.height-data.height/5)/(topf-basef)
+        #cx = data.curTime * tScale % data.width
+        #cy = 9/10*data.height
+        canvas.create_oval(cx-r,cy-r,cx+r,cy+r,fill=color,width=3)
+        data.oldX, data.oldR = cx, r
+        if cx+r >= data.width:
+            print("overflow!")
+            canvas.create_rectangle(0,data.height*(1-1/3)-50,data.width,data.height,fill="#FFEE93",width=0)
+            data.oldX = 0
+
+
+    # canvas.coords(data.noteCircle,(cx-r,cy-r,cx+r,cy+r))
+    # canvas.itemconfig(data.noteCircle,fill=color)
+
+def deltaDrawRing(canvas,data):
+    if data.addFlag == True:
+        print("colors",data.colors)
+
+        zeroX,zeroY = 0,0
+        innerR = 200
+        outerR = 270
+        offset = 10
+        canvas.create_oval(zeroX-outerR-offset,zeroY-outerR-offset,
+                           zeroX+outerR+offset,zeroY+outerR+offset,
+                           fill = "#FFEE93",width=0)
+
+        if data.ringType == "wavy":
+            ring = wavyRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "pure":
+            ring = pureRing(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+        elif data.ringType == "bead":
+            ring = colorfulBeads(canvas,zeroX,zeroY,innerR,outerR,data.colors)
+                
+        
+        data.ring = ring
+        ring.draw(data)
+
+        data.addFlag = False
+
+def analysisDeltaDraw(canvas, data):
+    bindButton(data.homeButton,data)
+    deltaDrawCircle(canvas,data)
+    deltaDrawRing(canvas,data)
 
 def analysisMousePressed(event,data):
+    data.mouseX = event.x
+    data.mouseY = event.y
+
+def analysisKeyPressed(event,data):
     pass
 ################################################################################
 ############################# Main Function ####################################
 ################################################################################
 
-def run(width=1200, height=800):
+def run(width=1200, height=700):
+    def deltaDrawWrapper(canvas, data):
+        if (data.readyForDeltaDraw == True):
+            deltaDraw(canvas, data)
+            canvas.update()
+        else:
+            redrawAllWrapper(canvas, data)
 
     def redrawAllWrapper(canvas, data):
         canvas.delete(ALL)
@@ -561,7 +695,7 @@ def run(width=1200, height=800):
                                 fill='white', width=0)
         redrawAll(canvas, data)
         canvas.update() 
-        data.readyForDeltaDraw = True   
+           
 
     def mousePressedWrapper(event, canvas, data):
         mousePressed(event, data)
@@ -573,7 +707,7 @@ def run(width=1200, height=800):
 
     def timerFiredWrapper(canvas, data):
         timerFired(canvas, data)
-        redrawAllWrapper(canvas, data)
+        deltaDrawWrapper(canvas, data)
         # pause, then call timerFired again
         canvas.after(data.timerDelay, timerFiredWrapper, canvas, data)
     # Set up data and call init
@@ -584,9 +718,6 @@ def run(width=1200, height=800):
     data.height = height
     data.timerDelay = 100 # milliseconds
     data.readyForDeltaDraw = False
-
-    
-
 
     p = pyaudio.PyAudio()
 
@@ -599,10 +730,12 @@ def run(width=1200, height=800):
     print("Pyaudio recording")
     # create the root and the canvas
     root = Tk()
+    data.root=root
+    #root.attributes('-fullscreen', True)
+
     init(data)
     canvas = Canvas(root, width=data.width, height=data.height)
-
-
+    data.canvas = canvas
 
     canvas.pack()
     # set up events

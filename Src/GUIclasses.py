@@ -1,4 +1,16 @@
 from tkinter import *
+import os
+from PIL import ImageGrab
+
+def saveImage(canvas,data,dirPath):
+    x=data.root.winfo_rootx()+canvas.winfo_x()
+    y=data.root.winfo_rooty()+canvas.winfo_y()
+
+    x1=x+data.width*2
+    y1=y+data.height*2
+    
+    path = os.path.join(dirPath,"new.png")
+    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save(path)
 
 class button(object):
     ''' 
@@ -49,7 +61,9 @@ class button(object):
             data.readyForDeltaDraw = False
             #data.canvas.delete("all")
             data.mode = self.mode 
-            if data.mode == "create": self.stop = False
+            if data.mode == "create":
+                self.stop = False
+                #self.rings = []
             data.curTime = 0 
 
 class saveButton(button):
@@ -137,14 +151,16 @@ class sideMenu(object):
         for button in self.buttons:
             bindButton(button,self.data)
 
-def textRow(canvas,left,right,top,down,texts):
+def textRow(canvas,left,right,top,down,texts,color="black"):
     rows = len(texts)
-    cx = (right - left)/2
+    cx = left + (right - left)/2
     y0 = top
     unitInc = (down - top) / rows
+    print("in textRow! rows:",rows)
     for i in range(rows):
         cy = y0 + i *unitInc
-        canvas.create_text(cx,cy,text=texts[i],font="Helvetica 15 bold")
+        print("creating texts!")
+        canvas.create_text(cx,cy,text=texts[i],font="Helvetica 15 bold",fill=color)
 
 ###########
 def dancingNoteInit(data):

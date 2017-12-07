@@ -1,7 +1,11 @@
 # 15112F17 Timesheet
 ## Design
   - Storyboard, proposal, competitive analysis [Done on Nov 21; Took 2 hours]
-  - Matplotlib gridscale UI + display real-time text [Done on Nov 24; Took 1.5 hour] 
+  - Matplotlib gridscale UI + display real-time text [Done on Nov 24; Took 1.5 hour]
+  - Tkinter UI [Done on Dec 4; Took 1.5 hour] 
+  - Structual migration to Tkinter [Done on Dec 1; Took 3 hour]
+  - Full migration to Tkinter [Done on Dec 3; Took 2 hour]
+  - Presentation video preparation [Done on Dec 7; Took 1.5 hour]
 
 ## pyAudio
 Collect and analyze audio data
@@ -9,8 +13,7 @@ Collect and analyze audio data
   - Dynamic Spectrum Visualizer [Done on Nov 21; Took 3 hours]
   - FFT for Pitch Detection [Done on Nov 23; Took 1.5 hours]
   - Non-blocking mode for audio input [Done on Nov 25; Took 0.5 hour]
-  - Chord detection
-  - Tempo detection
+  - Anacycle data communication model in Tkinter [Done on Nov 4; Took 1 hour]
 
 ## Data mapping
 Convert audio data to graph
@@ -20,7 +23,15 @@ Convert audio data to graph
   - Chord --> color tone; Tempo --> brightness 
   - Output .png image [Done on Nov 27; Took 0.5 hour]
   - One ring at a time [Done on Nov 28; Took 1 hour]
-  - Structual migration to Tkinter [Done on Dec 1; Took 3 hour]
+  - Pitch variation --> ringType; Sound wave frequency --> EM freq [Done on Dec 2; Took 2 hour]
+
+## Graphics
+Self-written graphics function after migration to tkinter
+  - ring classes [Done on Dec 4; Took 2 hours]
+  - GUI widget classes [Done on Dec 5; Took 2 hours]
+  - Debug and working integration [Done on Dec 6; Took 2 hours]
+  - intuitive File saving on Tkinter [Done on Dec 5; Took 0.5 hour]
+  - help mode, documentation, code cleanup [Done on Dec 6; Took 2 hour]
 
 ## webapp
 UI for the program
@@ -33,8 +44,6 @@ Host the website on Cloud
 
 ## Bonus
 Nice to do
-  - speech recognition [Tried on Nov 28; Took 0.5 hour]
+  - speech recognition [Tried on Nov 28; Took 0.5 hour; Update: did not integrate] 
   - Add welcome screen and end screen [Tried on Nov 28; Took 1.5 hour]
-  - write fft from scratch
-  - Matplotlib color bar
   - Matplotlib Handdrawn Style [Done on Nov 27; Took 0.5 hour]
