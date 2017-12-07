@@ -1,6 +1,7 @@
 from tkinter import *
 import os
 from PIL import ImageGrab
+import webbrowser
 
 def saveImage(canvas,data,dirPath):
     x=data.root.winfo_rootx()+canvas.winfo_x()
@@ -10,7 +11,15 @@ def saveImage(canvas,data,dirPath):
     y1=y+data.height*2
     
     path = os.path.join(dirPath,"new.png")
-    ImageGrab.grab().crop((x+500,y+50,x1,y1)).save(path)
+    wd = os.getcwd()
+    print("***********wd:",wd)
+    sharePath = os.path.join(wd,"shareMode/share.png")
+    print("sharePath",sharePath)
+    print("**********************")
+
+    img = ImageGrab.grab().crop((x+500,y+50,x1,y1))
+    img.save(path)
+    img.save(sharePath)
 
 class button(object):
     ''' 

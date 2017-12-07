@@ -173,11 +173,15 @@ def rawAnalysis(data,rawData):
     freqs =line_fft.get_xdata()
 
     curFreq = freqs[maxIndex] + data.pOffset
-    curFreq = np.asscalar(curFreq)%800 
-    curPitch = fToNote(curFreq)
+    #print("curFreq!",curFreq)
+    try:
+        curFreq = np.asscalar(curFreq)%800
+        curPitch = fToNote(curFreq)
 
-    y_pureAmplitude = np.array(rawData_int, dtype='b')[::2] 
-    avgAmp = np.asscalar(sum(np.abs(y_pureAmplitude))/len(y_pureAmplitude))
+        y_pureAmplitude = np.array(rawData_int, dtype='b')[::2] 
+        avgAmp = np.asscalar(sum(np.abs(y_pureAmplitude))/len(y_pureAmplitude))
+    except:
+        return 0,"A0",0
     #print("f",curFreq,"P",curPitch,"A",avgAmp)
     return curFreq,curPitch,avgAmp
 
