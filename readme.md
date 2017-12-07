@@ -14,6 +14,7 @@ To use ColorfulNote, you need to have python3 with the required modules.
 * tkinter >= 8.5
 * PIL >= 1.1.7
 * pyAudio >= 0.2.11
+* Django (optional for sharing feature)
 
 You can check the version of your python by typing in the terminal:
 

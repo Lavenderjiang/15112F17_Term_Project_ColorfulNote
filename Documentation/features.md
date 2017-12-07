@@ -9,6 +9,7 @@
 * self-written sound analysis for pitch detection, strength detection, tone variation
 * self-written GUI widgets (buttons and menu classes)
 * self-written drawing helpers that draw ring objects using polar coordinate and trignomotry
+* integrated with Django website
 
 ## User Experience
 * pretty color scheme
